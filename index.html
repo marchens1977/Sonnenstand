@@ -206,14 +206,14 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let map, marker;
-        let currentLat = 52.52;
-        let currentLng = 13.405;
+        let currentLat = 50.04;
+        let currentLng = 8.24;
 
         const dateInput = document.getElementById('dateInput');
         dateInput.value = new Date().toISOString().split('T')[0];
 
         function initMap() {
-            map = L.map('map').setView([currentLat, currentLng], 10);
+            map = L.map('map').setView([currentLat, currentLng], 11);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
@@ -241,14 +241,14 @@
                         showStatus("");
                     },
                     function(error) {
-                        showStatus("GPS nicht freigegeben. Standardsuche aktiviert.");
-                        setPosition(52.52, 13.405, true);
+                        showStatus("GPS nicht freigegeben. Standardstandort gewählt.");
+                        setPosition(50.04, 8.24, true);
                     },
                     { enableHighAccuracy: true, timeout: 5000 }
                 );
             } else {
                 showStatus("GPS wird von diesem Browser nicht unterstützt.");
-                setPosition(52.52, 13.405, true);
+                setPosition(50.04, 8.24, true);
             }
         }
 
@@ -321,36 +321,41 @@
             if (!date) return;
 
             showStatus("Berechne Zeiten...");
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLng}&daily=sunrise,sunset,solar_noon&timezone=auto&start_date=${date}&end_date=${date}`;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLng}&daily=sunrise,sunset&timezone=auto&start_date=${date}&end_date=${date}`;
 
             try {
                 const res = await fetch(url);
                 const data = await res.json();
 
-                if (data && data.daily) {
+                if (data && data.daily && data.daily.sunrise && data.daily.sunset) {
                     const sunriseISO = data.daily.sunrise[0];
                     const sunsetISO = data.daily.sunset[0];
-                    const solarNoonISO = data.daily.solar_noon ? data.daily.solar_noon[0] : null;
 
-                    const sunriseTime = sunriseISO ? sunriseISO.split('T')[1].substring(0, 5) : '--:--';
-                    const sunsetTime = sunsetISO ? sunsetISO.split('T')[1].substring(0, 5) : '--:--';
-                    const solarNoonTime = solarNoonISO ? solarNoonISO.split('T')[1].substring(0, 5) : '--:--';
+                    const srDate = new Date(sunriseISO);
+                    const ssDate = new Date(sunsetISO);
+
+                    const sunriseTime = sunriseISO.split('T')[1].substring(0, 5);
+                    const sunsetTime = sunsetISO.split('T')[1].substring(0, 5);
+
+                    const noonMs = srDate.getTime() + (ssDate.getTime() - srDate.getTime()) / 2;
+                    const noonDate = new Date(noonMs);
+                    const solarNoonHours = String(noonDate.getHours()).padStart(2, '0');
+                    const solarNoonMinutes = String(noonDate.getMinutes()).padStart(2, '0');
+                    const solarNoonTime = `${solarNoonHours}:${solarNoonMinutes}`;
 
                     document.getElementById('sunrise').innerText = sunriseTime;
                     document.getElementById('sunset').innerText = sunsetTime;
                     document.getElementById('solarnoon').innerText = solarNoonTime;
 
-                    if (sunriseISO && sunsetISO) {
-                        const srDate = new Date(sunriseISO);
-                        const ssDate = new Date(sunsetISO);
-                        const diffMs = ssDate - srDate;
-                        const diffHrs = Math.floor(diffMs / 3600000);
-                        const diffMins = Math.round((diffMs % 3600000) / 60000);
-                        document.getElementById('daylength').innerText = `${diffHrs} Std ${diffMins} Min`;
+                    const diffMs = ssDate - srDate;
+                    const diffHrs = Math.floor(diffMs / 3600000);
+                    const diffMins = Math.round((diffMs % 3600000) / 60000);
+                    document.getElementById('daylength').innerText = `${diffHrs} Std ${diffMins} Min`;
 
-                        drawSunArc(srDate, ssDate);
-                    }
+                    drawSunArc(srDate, ssDate);
                     showStatus("");
+                } else {
+                    showStatus("Keine Daten erhalten.");
                 }
             } catch (e) {
                 showStatus("Fehler beim Abrufen der Sonnendaten.");

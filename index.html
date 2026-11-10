@@ -1,872 +1,409 @@
 <!DOCTYPE html>
-<html lang="de" class="h-full bg-slate-950 text-slate-100">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Solaria — Sonnenauf- & Untergangszeiten</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        amber: { 500: '#f59e0b', 600: '#d97706' },
-                        orange: { 500: '#f97316', 600: '#ea580c' },
-                        sky: { 400: '#38bdf8', 500: '#0ea5e9' }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Google Fonts Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Leaflet CSS & JS (Kostenfreie Karten-Bibliothek) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- SunCalc for astronomical calculations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonnenstand & Dämmerung</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* Modern scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #f59e0b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
         }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 3px;
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
+        header {
+            text-align: center;
+            padding: 8px 0;
         }
-
-        /* Leaflet popup & container dark mode overrides */
-        .leaflet-popup-content-wrapper {
-            background: #1e293b !important;
-            color: #f8fafc !important;
-            border: 1px solid #334155;
-            border-radius: 0.75rem !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+        header h1 {
+            font-size: 1.4rem;
+            color: var(--accent-color);
         }
-        .leaflet-popup-tip {
-            background: #1e293b !important;
-        }
-        .leaflet-container {
-            font-family: 'Inter', sans-serif !important;
-            background-color: #0f172a !important;
-        }
-        
-        /* Subtle dark mode filter for OpenStreetMap tiles */
-        .dark-tiles .leaflet-tile-pane {
-            filter: brightness(0.85) contrast(1.1) saturate(0.95);
-        }
-
-        /* Canvas dimensions */
-        .sun-path-canvas {
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
             width: 100%;
-            height: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
-        
-        /* Touch optimization */
-        button, input, select {
-            touch-action: manipulation;
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+        }
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        input[type="text"], input[type="date"] {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: #0f172a;
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+        button {
+            background: var(--accent-color);
+            color: #0f172a;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 42px;
+        }
+        button.secondary {
+            background: #334155;
+            color: var(--text-color);
+        }
+        #map {
+            height: 280px;
+            border-radius: 8px;
+            z-index: 1;
+        }
+        .date-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .quick-dates {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .quick-dates button {
+            flex: 1;
+            padding: 8px 4px;
+            font-size: 0.85rem;
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .result-box {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        .result-box .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .result-box .val {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        .full-width {
+            grid-column: span 2;
+        }
+        .location-info {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        canvas {
+            width: 100%;
+            height: 120px;
+            margin-top: 8px;
+        }
+        .status {
+            font-size: 0.85rem;
+            color: var(--accent-color);
+            text-align: center;
+            min-height: 20px;
         }
     </style>
 </head>
-<body class="min-h-full flex flex-col bg-slate-950 font-sans antialiased text-slate-100 select-none sm:select-auto">
+<body>
+    <div class="container">
+        <header>
+            <h1>Sonnenauf- & Untergang</h1>
+        </header>
 
-    <!-- Mobile-First Header Nav -->
-    <header class="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-md">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
-            
-            <!-- Logo / Home Trigger -->
-            <div class="flex items-center space-x-2.5 cursor-pointer shrink-0" onclick="resetToDefaultLocation()">
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                    <i class="fa-solid fa-sun text-slate-950 text-lg sm:text-xl animate-pulse"></i>
-                </div>
-                <div>
-                    <h1 class="font-extrabold text-base sm:text-lg leading-tight bg-gradient-to-r from-amber-200 via-orange-300 to-rose-300 bg-clip-text text-transparent">
-                        Solaria
-                    </h1>
-                    <p class="text-[10px] sm:text-xs text-slate-400 hidden xs:block">Sonnenstand & Zeiten</p>
-                </div>
+        <div class="card">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Ort suchen...">
+                <button onclick="searchLocation()">Suchen</button>
+                <button class="secondary" onclick="useGPS()" title="Mein Standort">📍</button>
             </div>
-
-            <!-- Search Bar with Live Geocoding Autocomplete -->
-            <div class="relative flex-1 max-w-md">
-                <div class="relative flex items-center">
-                    <span class="absolute left-3 text-slate-400 pointer-events-none text-xs sm:text-sm">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </span>
-                    <input type="text" id="searchInput" 
-                           placeholder="Ort suchen (z.B. Berlin, Wien, Tokio)..." 
-                           class="w-full pl-9 pr-8 py-2 bg-slate-800/90 border border-slate-700/80 rounded-xl text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-slate-100"
-                           autocomplete="off">
-                    <button id="clearSearchBtn" class="hidden absolute right-2.5 p-1 text-slate-400 hover:text-slate-200">
-                        <i class="fa-solid fa-xmark text-xs sm:text-sm"></i>
-                    </button>
-                </div>
-                <!-- Search Suggestions Dropdown -->
-                <div id="searchResults" class="hidden absolute left-0 right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-700/50"></div>
-            </div>
-
-            <!-- GPS Button -->
-            <button onclick="getUserLocation()" 
-                    title="Meinen Standort verwenden"
-                    class="flex items-center justify-center px-2.5 py-2 sm:px-3 bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 border border-amber-500/30 rounded-xl text-xs font-semibold text-amber-300 transition-all shrink-0 gap-1.5 min-h-[40px]">
-                <i class="fa-solid fa-location-crosshairs text-amber-400"></i>
-                <span class="hidden md:inline">Mein Standort</span>
-            </button>
-
-        </div>
-    </header>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
-
-        <!-- Top Controls: Location Summary & Date Selector -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-            
-            <!-- Current Selected Location Badge -->
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 shrink-0">
-                    <i class="fa-solid fa-location-dot text-lg sm:text-xl"></i>
-                </div>
-                <div class="overflow-hidden">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h2 id="locationName" class="text-base sm:text-lg font-bold text-slate-100 truncate">Lädt Standort...</h2>
-                        <span id="countryBadge" class="px-2 py-0.5 text-[11px] font-semibold bg-slate-800 text-slate-300 rounded-md border border-slate-700">--</span>
-                    </div>
-                    <p id="locationCoords" class="text-xs text-slate-400 font-mono mt-0.5">0.0000° N, 0.0000° E • Zeitzone: --</p>
-                </div>
-            </div>
-
-            <!-- Date Selector Controls (Touch-optimized) -->
-            <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full md:w-auto">
-                
-                <div class="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700 w-full sm:w-auto justify-between sm:justify-start">
-                    <button onclick="changeDate(-1)" class="p-2.5 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-slate-300 transition-colors min-w-[40px]" title="Vorheriger Tag">
-                        <i class="fa-solid fa-chevron-left text-xs"></i>
-                    </button>
-                    
-                    <input type="date" id="datePicker" class="bg-transparent text-xs sm:text-sm font-semibold px-2 text-amber-300 focus:outline-none cursor-pointer text-center">
-
-                    <button onclick="changeDate(1)" class="p-2.5 hover:bg-slate-700 active:bg-slate-600 rounded-lg text-slate-300 transition-colors min-w-[40px]" title="Nächster Tag">
-                        <i class="fa-solid fa-chevron-right text-xs"></i>
-                    </button>
-                </div>
-
-                <!-- Quick Select Date Shortcuts -->
-                <div class="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/80 w-full sm:w-auto justify-center">
-                    <button onclick="setDateOffset(-1)" class="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 active:bg-slate-600 rounded-lg transition-colors">Gestern</button>
-                    <button onclick="setDateOffset(0)" class="flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg hover:bg-amber-500/30 active:bg-amber-500/40 transition-colors">Heute</button>
-                    <button onclick="setDateOffset(1)" class="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 active:bg-slate-600 rounded-lg transition-colors">Morgen</button>
-                </div>
-
-            </div>
-
+            <div id="map"></div>
         </div>
 
-        <!-- Dashboard Layout: Left Details, Right Interactive Map -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-
-            <!-- Left Main Column (7 cols on Desktop) -->
-            <div class="lg:col-span-7 space-y-4 sm:space-y-6">
-
-                <!-- 4 Key Stat Cards -->
-                <div class="grid grid-cols-2 gap-3 sm:gap-4">
-
-                    <!-- Sunrise Card -->
-                    <div class="bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-2xl p-3.5 sm:p-5 transition-all shadow-lg group">
-                        <div class="flex items-center justify-between mb-2 sm:mb-3">
-                            <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-amber-400">Sonnenaufgang</span>
-                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                                <i class="fa-solid fa-sun-plant-wilt text-xs sm:text-sm"></i>
-                            </div>
-                        </div>
-                        <div id="sunriseTime" class="text-xl sm:text-3xl font-extrabold text-amber-100 font-mono tracking-tight">--:--</div>
-                        <p id="civilDawnTime" class="text-[11px] sm:text-xs text-slate-400 mt-2 truncate">
-                            Dämmerung: <span class="font-mono text-slate-200">--:--</span>
-                        </p>
-                    </div>
-
-                    <!-- Sunset Card -->
-                    <div class="bg-slate-900 border border-slate-800 hover:border-orange-500/40 rounded-2xl p-3.5 sm:p-5 transition-all shadow-lg group">
-                        <div class="flex items-center justify-between mb-2 sm:mb-3">
-                            <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-orange-400">Sonnenuntergang</span>
-                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center">
-                                <i class="fa-solid fa-moon text-xs sm:text-sm"></i>
-                            </div>
-                        </div>
-                        <div id="sunsetTime" class="text-xl sm:text-3xl font-extrabold text-orange-100 font-mono tracking-tight">--:--</div>
-                        <p id="civilDuskTime" class="text-[11px] sm:text-xs text-slate-400 mt-2 truncate">
-                            Dämmerung: <span class="font-mono text-slate-200">--:--</span>
-                        </p>
-                    </div>
-
-                    <!-- Daylight Duration Card -->
-                    <div class="bg-slate-900 border border-slate-800 hover:border-sky-500/40 rounded-2xl p-3.5 sm:p-5 transition-all shadow-lg">
-                        <div class="flex items-center justify-between mb-2 sm:mb-3">
-                            <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-sky-400">Tageslänge</span>
-                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
-                                <i class="fa-solid fa-hourglass-half text-xs sm:text-sm"></i>
-                            </div>
-                        </div>
-                        <div id="dayLength" class="text-xl sm:text-2xl font-extrabold text-sky-100 tracking-tight">-- Std. -- Min.</div>
-                        <div class="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                            <div id="dayProgress" class="bg-gradient-to-r from-amber-400 to-sky-400 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <!-- Solar Noon Card -->
-                    <div class="bg-slate-900 border border-slate-800 hover:border-yellow-500/40 rounded-2xl p-3.5 sm:p-5 transition-all shadow-lg">
-                        <div class="flex items-center justify-between mb-2 sm:mb-3">
-                            <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-yellow-400">Höchststand</span>
-                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-yellow-500/10 text-yellow-400 flex items-center justify-center">
-                                <i class="fa-solid fa-compass text-xs sm:text-sm"></i>
-                            </div>
-                        </div>
-                        <div id="solarNoonTime" class="text-xl sm:text-3xl font-extrabold text-yellow-100 font-mono tracking-tight">--:--</div>
-                        <p id="maxAltitude" class="text-[11px] sm:text-xs text-slate-400 mt-2 truncate">
-                            Winkel: <span class="font-mono text-slate-200">--°</span>
-                        </p>
-                    </div>
-
-                </div>
-
-                <!-- Sun Arc Visual Canvas -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
-                    <div class="flex items-center justify-between flex-wrap gap-2">
-                        <h3 class="text-xs sm:text-sm font-semibold text-slate-200 flex items-center gap-2">
-                            <i class="fa-solid fa-chart-area text-amber-400"></i> Visueller Sonnenlauf
-                        </h3>
-                        <span id="sunStatusBadge" class="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-                            Berechne...
-                        </span>
-                    </div>
-
-                    <!-- Interactive Canvas Area -->
-                    <div class="relative flex items-center justify-center bg-slate-950/80 rounded-xl p-2 border border-slate-800/80 overflow-hidden">
-                        <canvas id="sunCanvas" class="sun-path-canvas"></canvas>
-                    </div>
-
-                    <!-- Arc Labels -->
-                    <div class="flex items-center justify-between text-[11px] sm:text-xs text-slate-400 font-mono pt-1">
-                        <div class="flex items-center gap-1">
-                            <i class="fa-solid fa-arrow-up-right-dots text-amber-400"></i> Aufgang: <span id="arcRise" class="text-slate-200 font-semibold">--:--</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <i class="fa-solid fa-crown text-yellow-400"></i> Zenith: <span id="arcZenith" class="text-slate-200 font-semibold">--:--</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <i class="fa-solid fa-arrow-down-right-dots text-orange-400"></i> Untergang: <span id="arcSet" class="text-slate-200 font-semibold">--:--</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Twilight Phases Table -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
-                    <h3 class="text-xs sm:text-sm font-semibold text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-cloud-moon text-indigo-400"></i> Dämmerungsphasen (Ortszeit)
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                        
-                        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-1">
-                            <div class="font-semibold text-slate-200">Bürgerlich</div>
-                            <div class="text-slate-400 text-[10px]">Sonne 0° bis -6°</div>
-                            <div class="pt-1 font-mono text-slate-300 flex justify-between">
-                                <span>Morgens: <strong id="civDawn" class="text-amber-300">--:--</strong></span>
-                            </div>
-                            <div class="font-mono text-slate-300 flex justify-between">
-                                <span>Abends: <strong id="civDusk" class="text-amber-300">--:--</strong></span>
-                            </div>
-                        </div>
-
-                        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-1">
-                            <div class="font-semibold text-slate-200">Nautisch</div>
-                            <div class="text-slate-400 text-[10px]">Sonne -6° bis -12°</div>
-                            <div class="pt-1 font-mono text-slate-300 flex justify-between">
-                                <span>Morgens: <strong id="nautDawn" class="text-sky-300">--:--</strong></span>
-                            </div>
-                            <div class="font-mono text-slate-300 flex justify-between">
-                                <span>Abends: <strong id="nautDusk" class="text-sky-300">--:--</strong></span>
-                            </div>
-                        </div>
-
-                        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-1">
-                            <div class="font-semibold text-slate-200">Astronomisch</div>
-                            <div class="text-slate-400 text-[10px]">Sonne -12° bis -18°</div>
-                            <div class="pt-1 font-mono text-slate-300 flex justify-between">
-                                <span>Morgens: <strong id="astroDawn" class="text-indigo-300">--:--</strong></span>
-                            </div>
-                            <div class="font-mono text-slate-300 flex justify-between">
-                                <span>Abends: <strong id="astroDusk" class="text-indigo-300">--:--</strong></span>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
+        <div class="card">
+            <div class="date-controls">
+                <button class="secondary" onclick="changeDate(-1)">◄ Tag</button>
+                <input type="date" id="dateInput" onchange="updateData()">
+                <button class="secondary" onclick="changeDate(1)">Tag ►</button>
+            </div>
+            <div class="quick-dates">
+                <button class="secondary" onclick="setDateOffset(-1)">Gestern</button>
+                <button onclick="setToday()">Heute</button>
+                <button class="secondary" onclick="setDateOffset(1)">Morgen</button>
             </div>
 
-            <!-- Right Interactive Map Column (5 cols on Desktop) -->
-            <div class="lg:col-span-5 flex flex-col space-y-4">
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex-1 flex flex-col">
-                    
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-xs sm:text-sm font-semibold text-slate-200 flex items-center gap-2">
-                            <i class="fa-solid fa-map-location-dot text-amber-400"></i> Interaktive Ortspielkarte
-                        </h3>
-                        <span class="text-[11px] text-slate-400">Tippen für Standortwechsel</span>
-                    </div>
+            <div id="status" class="status"></div>
+            <div id="locationName" class="location-info">Standort wird ermittelt...</div>
 
-                    <!-- Map Container with OpenStreetMap Tiles (100% Free, NO API Key needed) -->
-                    <div id="map" class="w-full h-[320px] sm:h-[400px] lg:h-full rounded-xl border border-slate-800 z-10 dark-tiles min-h-[300px]"></div>
-
-                    <!-- Quick City Selector Pills -->
-                    <div class="mt-4 pt-3 border-t border-slate-800">
-                        <span class="text-[11px] text-slate-400 block mb-2 font-medium">Schnellauswahl:</span>
-                        <div class="flex flex-wrap gap-1.5">
-                            <button onclick="setLocation(52.5200, 13.4050, 'Berlin')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700/70">Berlin</button>
-                            <button onclick="setLocation(48.1351, 11.5820, 'München')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700/70">München</button>
-                            <button onclick="setLocation(48.2082, 16.3738, 'Wien')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700/70">Wien</button>
-                            <button onclick="setLocation(47.3769, 8.5417, 'Zürich')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700/70">Zürich</button>
-                            <button onclick="setLocation(40.7128, -74.0060, 'New York')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700/70">New York</button>
-                            <button onclick="setLocation(35.6762, 139.6503, 'Tokio')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700/70">Tokio</button>
-                            <button onclick="setLocation(-33.8688, 151.2093, 'Sydney')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700/70">Sydney</button>
-                        </div>
-                    </div>
-
+            <div class="results-grid">
+                <div class="result-box">
+                    <div class="label">🌅 Sonnenaufgang</div>
+                    <div class="val" id="sunrise">--:--</div>
                 </div>
-            </div>
-
-        </div>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="mt-auto bg-slate-900 border-t border-slate-800 py-3.5 text-center text-xs text-slate-500">
-        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div>
-                © Solaria • Karten & Daten via <a href="https://www.openstreetmap.org" target="_blank" class="text-amber-400 hover:underline">OpenStreetMap</a> & <a href="https://open-meteo.com/" target="_blank" class="text-amber-400 hover:underline">Open-Meteo API</a>
-            </div>
-            <div class="flex items-center gap-2 text-slate-400">
-                <i class="fa-solid fa-shield-halved text-emerald-400"></i> Keine API-Schlüssel erforderlich
+                <div class="result-box">
+                    <div class="label">🌇 Sonnenuntergang</div>
+                    <div class="val" id="sunset">--:--</div>
+                </div>
+                <div class="result-box">
+                    <div class="label">☀️ Höchststand</div>
+                    <div class="val" id="solarnoon">--:--</div>
+                </div>
+                <div class="result-box">
+                    <div class="label">⏱️ Tageslänge</div>
+                    <div class="val" id="daylength">-- Std -- Min</div>
+                </div>
+                <div class="result-box full-width">
+                    <div class="label">Sonnenverlauf</div>
+                    <canvas id="sunCanvas"></canvas>
+                </div>
             </div>
         </div>
-    </footer>
+    </div>
 
-    <!-- Main JS Application Logic -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Global Application State
-        let currentLat = 52.5200; // Default: Berlin
-        let currentLng = 13.4050;
-        let selectedDate = new Date().toISOString().split('T')[0];
-        let map = null;
-        let marker = null;
-        let sunData = null;
-        let debounceTimer = null;
+        let map, marker;
+        let currentLat = 52.52;
+        let currentLng = 13.405;
 
-        // Start Application on Load
-        window.addEventListener('DOMContentLoaded', () => {
-            initDatePicker();
-            initMap();
-            setupSearchListeners();
-            fetchSunAndLocationData(currentLat, currentLng, selectedDate);
+        const dateInput = document.getElementById('dateInput');
+        dateInput.value = new Date().toISOString().split('T')[0];
 
-            // Responsive redraw on screen resize
-            window.addEventListener('resize', () => {
-                if (sunData) renderSunCanvas();
-            });
-        });
-
-        // Initialize Date Picker Controls
-        function initDatePicker() {
-            const dateInput = document.getElementById('datePicker');
-            dateInput.value = selectedDate;
-            dateInput.addEventListener('change', (e) => {
-                if (e.target.value) {
-                    selectedDate = e.target.value;
-                    fetchSunAndLocationData(currentLat, currentLng, selectedDate);
-                }
-            });
-        }
-
-        // Increment or decrement selected date by days
-        function changeDate(daysOffset) {
-            const d = new Date(selectedDate);
-            d.setDate(d.getDate() + daysOffset);
-            selectedDate = d.toISOString().split('T')[0];
-            document.getElementById('datePicker').value = selectedDate;
-            fetchSunAndLocationData(currentLat, currentLng, selectedDate);
-        }
-
-        // Direct date shortcuts (Gestern, Heute, Morgen)
-        function setDateOffset(offsetFromToday) {
-            const d = new Date();
-            d.setDate(d.getDate() + offsetFromToday);
-            selectedDate = d.toISOString().split('T')[0];
-            document.getElementById('datePicker').value = selectedDate;
-            fetchSunAndLocationData(currentLat, currentLng, selectedDate);
-        }
-
-        // Initialize Leaflet Map using Standard OpenStreetMap Tiles (100% Free, NO API Key!)
         function initMap() {
-            map = L.map('map', {
-                zoomControl: true,
-                attributionControl: false
-            }).setView([currentLat, currentLng], 5);
-
-            // OpenStreetMap Standard Tiles - Completely Free & Open
+            map = L.map('map').setView([currentLat, currentLng], 10);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
+                attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
-            // Custom Styled Sun Pin Icon
-            const customIcon = L.divIcon({
-                className: 'custom-pin',
-                html: `<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 border-2 border-white shadow-xl flex items-center justify-center text-slate-950 font-bold text-xs"><i class="fa-solid fa-sun"></i></div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+            marker = L.marker([currentLat, currentLng], { draggable: true }).addTo(map);
+
+            map.on('click', function(e) {
+                setPosition(e.latlng.lat, e.latlng.lng);
             });
 
-            marker = L.marker([currentLat, currentLng], { icon: customIcon, draggable: true }).addTo(map);
-
-            // Click event on map to set position
-            map.on('click', (e) => {
-                const { lat, lng } = e.latlng;
-                updateLocation(lat, lng);
+            marker.on('dragend', function(e) {
+                const pos = marker.getLatLng();
+                setPosition(pos.lat, pos.lng);
             });
 
-            // Drag event on marker
-            marker.on('dragend', (e) => {
-                const position = marker.getLatLng();
-                updateLocation(position.lat, position.lng);
-            });
+            useGPS();
         }
 
-        // Location Update Handler
-        function updateLocation(lat, lng, nameHint = null) {
-            currentLat = parseFloat(lat);
-            currentLng = parseFloat(lng);
-
-            marker.setLatLng([currentLat, currentLng]);
-            map.panTo([currentLat, currentLng]);
-
-            fetchSunAndLocationData(currentLat, currentLng, selectedDate, nameHint);
-        }
-
-        function setLocation(lat, lng, name) {
-            updateLocation(lat, lng, name);
-        }
-
-        function resetToDefaultLocation() {
-            updateLocation(52.5200, 13.4050, 'Berlin');
-        }
-
-        // HTML5 Geolocation API for automatic user position
-        function getUserLocation() {
+        function useGPS() {
+            showStatus("Ermittle GPS-Standort...");
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        updateLocation(position.coords.latitude, position.coords.longitude);
+                    function(position) {
+                        setPosition(position.coords.latitude, position.coords.longitude, true);
+                        showStatus("");
                     },
-                    (error) => {
-                        alert('Standort konnte nicht ermittelt werden. Bitte prüfe deine Browser-Berechtigungen.');
-                    }
+                    function(error) {
+                        showStatus("GPS nicht freigegeben. Standardsuche aktiviert.");
+                        setPosition(52.52, 13.405, true);
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
                 );
             } else {
-                alert('Geolocation wird von diesem Browser leider nicht unterstützt.');
+                showStatus("GPS wird von diesem Browser nicht unterstützt.");
+                setPosition(52.52, 13.405, true);
             }
         }
 
-        // Fetch Sunrise/Sunset data from Open-Meteo & reverse geocode location name via Nominatim
-        async function fetchSunAndLocationData(lat, lng, dateStr, nameHint = null) {
-            showLoadingState();
+        function setPosition(lat, lng, centerMap = false) {
+            currentLat = lat;
+            currentLng = lng;
+            marker.setLatLng([lat, lng]);
+            if (centerMap) {
+                map.setView([lat, lng], 11);
+            }
+            updateData();
+            reverseGeocode(lat, lng);
+        }
+
+        function showStatus(msg) {
+            document.getElementById('status').innerText = msg;
+        }
+
+        function setToday() {
+            dateInput.value = new Date().toISOString().split('T')[0];
+            updateData();
+        }
+
+        function setDateOffset(offsetDays) {
+            const d = new Date(dateInput.value || new Date());
+            d.setDate(d.getDate() + offsetDays);
+            dateInput.value = d.toISOString().split('T')[0];
+            updateData();
+        }
+
+        function changeDate(days) {
+            setDateOffset(days);
+        }
+
+        async function searchLocation() {
+            const query = document.getElementById('searchInput').value;
+            if (!query) return;
+            showStatus("Suche Ort...");
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    setPosition(lat, lon, true);
+                    document.getElementById('locationName').innerText = data[0].display_name;
+                    showStatus("");
+                } else {
+                    showStatus("Ort nicht gefunden.");
+                }
+            } catch (e) {
+                showStatus("Fehler bei der Ortssuche.");
+            }
+        }
+
+        async function reverseGeocode(lat, lng) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const data = await res.json();
+                if (data && data.display_name) {
+                    document.getElementById('locationName').innerText = data.display_name;
+                }
+            } catch (e) {
+                document.getElementById('locationName').innerText = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
+            }
+        }
+
+        async function updateData() {
+            const date = dateInput.value;
+            if (!date) return;
+
+            showStatus("Berechne Zeiten...");
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLng}&daily=sunrise,sunset,solar_noon&timezone=auto&start_date=${date}&end_date=${date}`;
 
             try {
-                // Open-Meteo API call (Free, No Key required)
-                const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=sunrise,sunset,daylight_duration&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
-                const weatherRes = await fetch(openMeteoUrl);
-                const weatherData = await weatherRes.json();
-
-                // Reverse Geocoding using OpenStreetMap Nominatim
-                let locationName = nameHint;
-                let countryCode = '';
-
-                if (!locationName) {
-                    try {
-                        const geoUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&accept-language=de`;
-                        const geoRes = await fetch(geoUrl);
-                        const geoData = await geoRes.json();
-                        
-                        if (geoData && geoData.address) {
-                            locationName = geoData.address.city || 
-                                           geoData.address.town || 
-                                           geoData.address.village || 
-                                           geoData.address.municipality || 
-                                           geoData.address.county || 
-                                           geoData.display_name.split(',')[0];
-                            countryCode = geoData.address.country_code ? geoData.address.country_code.toUpperCase() : '';
-                        }
-                    } catch (err) {
-                        console.warn('Geocoding notice:', err);
-                    }
-                }
-
-                if (!locationName) {
-                    locationName = `${lat.toFixed(2)}° N, ${lng.toFixed(2)}° E`;
-                }
-
-                // Extract Local Timezone & Timestamps
-                const timezoneStr = weatherData.timezone || 'UTC';
-                const sunriseIso = weatherData.daily?.sunrise[0];
-                const sunsetIso = weatherData.daily?.sunset[0];
-                const daylightSec = weatherData.daily?.daylight_duration[0] || 0;
-
-                // Extract local HH:mm directly from Open-Meteo's ISO string (formatted for target timezone)
-                const sunriseTimeFormatted = sunriseIso ? sunriseIso.split('T')[1].substring(0, 5) : '--:--';
-                const sunsetTimeFormatted = sunsetIso ? sunsetIso.split('T')[1].substring(0, 5) : '--:--';
-
-                // Astronomical computations using SunCalc JS library
-                const targetDate = new Date(dateStr + 'T12:00:00Z');
-                const suncalcTimes = SunCalc.getTimes(targetDate, lat, lng);
-
-                // Helper to format Date object into local HH:mm format for target timezone
-                const formatTime = (dateObj) => {
-                    if (!dateObj || isNaN(dateObj.getTime())) return '--:--';
-                    try {
-                        return new Intl.DateTimeFormat('de-DE', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: false,
-                            timeZone: timezoneStr
-                        }).format(dateObj);
-                    } catch (e) {
-                        return dateObj.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-                    }
-                };
-
-                // Sun position at solar noon for altitude angle
-                const solarNoonDate = suncalcTimes.solarNoon;
-                const noonPos = SunCalc.getPosition(solarNoonDate || targetDate, lat, lng);
-                const maxAltitudeDeg = Math.max(0, Math.round((noonPos.altitude * 180) / Math.PI));
-
-                // Save data model to state
-                sunData = {
-                    lat,
-                    lng,
-                    locationName,
-                    countryCode,
-                    timezoneStr,
-                    sunriseTimeFormatted,
-                    sunsetTimeFormatted,
-                    daylightSec,
-                    sunriseDate: sunriseIso ? new Date(sunriseIso) : null,
-                    sunsetDate: sunsetIso ? new Date(sunsetIso) : null,
-                    solarNoonFormatted: formatTime(suncalcTimes.solarNoon),
-                    maxAltitudeDeg,
-                    civilDawn: formatTime(suncalcTimes.dawn),
-                    civilDusk: formatTime(suncalcTimes.dusk),
-                    nautDawn: formatTime(suncalcTimes.nauticalDawn),
-                    nautDusk: formatTime(suncalcTimes.nauticalDusk),
-                    astroDawn: formatTime(suncalcTimes.nightEnd),
-                    astroDusk: formatTime(suncalcTimes.night),
-                    dateStr
-                };
-
-                updateUI();
-
-            } catch (error) {
-                console.error('Error fetching sun data:', error);
-                document.getElementById('locationName').innerText = 'Fehler beim Laden';
-            }
-        }
-
-        // Update all UI elements with state data
-        function updateUI() {
-            if (!sunData) return;
-
-            // Location Badges
-            document.getElementById('locationName').innerText = sunData.locationName;
-            document.getElementById('countryBadge').innerText = sunData.countryCode || 'Welt';
-            document.getElementById('locationCoords').innerText = `${Math.abs(sunData.lat).toFixed(4)}° ${sunData.lat >= 0 ? 'N' : 'S'}, ${Math.abs(sunData.lng).toFixed(4)}° ${sunData.lng >= 0 ? 'E' : 'W'} • Zeitzone: ${sunData.timezoneStr}`;
-
-            // Leaflet Popup Info
-            marker.bindPopup(`
-                <div class="p-1">
-                    <strong class="text-xs sm:text-sm font-semibold text-amber-400 block">${sunData.locationName}</strong>
-                    <div class="text-xs text-slate-300 mt-1 space-y-0.5">
-                        <div>🌅 Aufgang: <strong>${sunData.sunriseTimeFormatted} Uhr</strong></div>
-                        <div>🌇 Untergang: <strong>${sunData.sunsetTimeFormatted} Uhr</strong></div>
-                    </div>
-                </div>
-            `).openPopup();
-
-            // Main Stat Cards
-            document.getElementById('sunriseTime').innerText = sunData.sunriseTimeFormatted + ' Uhr';
-            document.getElementById('civilDawnTime').innerHTML = `Dämmerung: <span class="font-mono text-slate-200">${sunData.civilDawn}</span>`;
-
-            document.getElementById('sunsetTime').innerText = sunData.sunsetTimeFormatted + ' Uhr';
-            document.getElementById('civilDuskTime').innerHTML = `Dämmerung: <span class="font-mono text-slate-200">${sunData.civilDusk}</span>`;
-
-            // Daylight Hours & Minutes
-            const hours = Math.floor(sunData.daylightSec / 3600);
-            const minutes = Math.floor((sunData.daylightSec % 3600) / 60);
-            document.getElementById('dayLength').innerText = `${hours} Std. ${minutes} Min.`;
-
-            // Progress bar
-            const dayPercentage = Math.min(100, Math.max(0, (sunData.daylightSec / (24 * 3600)) * 100));
-            document.getElementById('dayProgress').style.width = `${dayPercentage}%`;
-
-            // Solar Noon & Elevation
-            document.getElementById('solarNoonTime').innerText = sunData.solarNoonFormatted + ' Uhr';
-            document.getElementById('maxAltitude').innerHTML = `Winkel: <span class="font-mono text-slate-200">${sunData.maxAltitudeDeg}°</span>`;
-
-            // Twilight Table
-            document.getElementById('civDawn').innerText = sunData.civilDawn;
-            document.getElementById('civDusk').innerText = sunData.civilDusk;
-            document.getElementById('nautDawn').innerText = sunData.nautDawn;
-            document.getElementById('nautDusk').innerText = sunData.nautDusk;
-            document.getElementById('astroDawn').innerText = sunData.astroDawn;
-            document.getElementById('astroDusk').innerText = sunData.astroDusk;
-
-            // Canvas Arc Labels
-            document.getElementById('arcRise').innerText = sunData.sunriseTimeFormatted;
-            document.getElementById('arcZenith').innerText = sunData.solarNoonFormatted;
-            document.getElementById('arcSet').innerText = sunData.sunsetTimeFormatted;
-
-            // Render Graphic
-            renderSunCanvas();
-        }
-
-        // Render Canvas Sun Path Arc
-        function renderSunCanvas() {
-            const canvas = document.getElementById('sunCanvas');
-            if (!canvas) return;
-
-            const ctx = canvas.getContext('2d');
-            const dpr = window.devicePixelRatio || 1;
-            const rect = canvas.getBoundingClientRect();
-
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
-            ctx.scale(dpr, dpr);
-
-            const width = rect.width;
-            const height = rect.height;
-
-            ctx.clearRect(0, 0, width, height);
-
-            // Diagram Geometry Parameters
-            const padding = 25;
-            const horizonY = height - 30;
-            const startX = padding;
-            const endX = width - padding;
-            const arcWidth = endX - startX;
-            const zenithY = 25;
-
-            // Horizon Line
-            ctx.beginPath();
-            ctx.moveTo(0, horizonY);
-            ctx.lineTo(width, horizonY);
-            ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([4, 4]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Horizon Label
-            ctx.fillStyle = '#64748b';
-            ctx.font = '10px Inter, sans-serif';
-            ctx.fillText('Horizont', 8, horizonY - 6);
-
-            // Parabolic Arc
-            ctx.beginPath();
-            ctx.moveTo(startX, horizonY);
-            ctx.quadraticCurveTo(startX + arcWidth / 2, zenithY - (zenithY * 0.4), endX, horizonY);
-
-            const pathGradient = ctx.createLinearGradient(startX, 0, endX, 0);
-            pathGradient.addColorStop(0, '#f59e0b');
-            pathGradient.addColorStop(0.5, '#facc15');
-            pathGradient.addColorStop(1, '#ea580c');
-
-            ctx.strokeStyle = pathGradient;
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            // Gradient Fill under Arc
-            ctx.lineTo(endX, horizonY);
-            ctx.lineTo(startX, horizonY);
-            ctx.closePath();
-
-            const fillGradient = ctx.createLinearGradient(0, zenithY, 0, horizonY);
-            fillGradient.addColorStop(0, 'rgba(245, 158, 11, 0.18)');
-            fillGradient.addColorStop(1, 'rgba(245, 158, 11, 0.0)');
-            ctx.fillStyle = fillGradient;
-            ctx.fill();
-
-            // Sun Position Indicator for Today
-            const todayStr = new Date().toISOString().split('T')[0];
-            const isToday = sunData.dateStr === todayStr;
-            const statusBadge = document.getElementById('sunStatusBadge');
-
-            if (isToday && sunData.sunriseTimeFormatted !== '--:--' && sunData.sunsetTimeFormatted !== '--:--') {
-                const now = new Date();
-
-                const [rH, rM] = sunData.sunriseTimeFormatted.split(':').map(Number);
-                const [sH, sM] = sunData.sunsetTimeFormatted.split(':').map(Number);
-
-                const sunriseMinutes = rH * 60 + rM;
-                const sunsetMinutes = sH * 60 + sM;
-                const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-                if (currentMinutes >= sunriseMinutes && currentMinutes <= sunsetMinutes) {
-                    // Daytime: calculate position along quadratic curve
-                    const progress = (currentMinutes - sunriseMinutes) / (sunsetMinutes - sunriseMinutes);
-                    const t = progress;
-                    const sunX = startX + progress * arcWidth;
-                    const controlY = zenithY - (zenithY * 0.4);
-                    const sunY = (1 - t) * (1 - t) * horizonY + 2 * (1 - t) * t * controlY + t * t * horizonY;
-
-                    // Glowing Sun Circle
-                    ctx.beginPath();
-                    ctx.arc(sunX, sunY, 9, 0, Math.PI * 2);
-                    ctx.fillStyle = '#fef08a';
-                    ctx.shadowColor = '#f59e0b';
-                    ctx.shadowBlur = 12;
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-
-                    ctx.beginPath();
-                    ctx.arc(sunX, sunY, 4.5, 0, Math.PI * 2);
-                    ctx.fillStyle = '#ea580c';
-                    ctx.fill();
-
-                    statusBadge.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-amber-400 mr-1 animate-ping"></span> Tag (Sonne am Himmel)`;
-                    statusBadge.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30';
-
-                } else {
-                    // Nighttime
-                    statusBadge.innerText = 'Nacht (Sonne unter Horizont)';
-                    statusBadge.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
-                }
-            } else {
-                statusBadge.innerText = `Datum: ${sunData.dateStr}`;
-                statusBadge.className = 'text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700';
-            }
-
-            // Start & End Anchor Points
-            ctx.beginPath();
-            ctx.arc(startX, horizonY, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#f59e0b';
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(endX, horizonY, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#ea580c';
-            ctx.fill();
-        }
-
-        // OpenStreetMap Nominatim Live Search Box Handlers
-        function setupSearchListeners() {
-            const searchInput = document.getElementById('searchInput');
-            const searchResults = document.getElementById('searchResults');
-            const clearSearchBtn = document.getElementById('clearSearchBtn');
-
-            searchInput.addEventListener('input', (e) => {
-                const query = e.target.value.trim();
-
-                if (query.length > 0) {
-                    clearSearchBtn.classList.remove('hidden');
-                } else {
-                    clearSearchBtn.classList.add('hidden');
-                    searchResults.classList.add('hidden');
-                    return;
-                }
-
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    if (query.length >= 2) {
-                        performSearch(query);
-                    }
-                }, 350);
-            });
-
-            clearSearchBtn.addEventListener('click', () => {
-                searchInput.value = '';
-                clearSearchBtn.classList.add('hidden');
-                searchResults.classList.add('hidden');
-                searchInput.focus();
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-                    searchResults.classList.add('hidden');
-                }
-            });
-        }
-
-        // Free OpenStreetMap Nominatim Search Request
-        async function performSearch(query) {
-            const searchResults = document.getElementById('searchResults');
-            searchResults.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Suche Orte...</div>`;
-            searchResults.classList.remove('hidden');
-
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&accept-language=de`);
+                const res = await fetch(url);
                 const data = await res.json();
 
-                if (!data || data.length === 0) {
-                    searchResults.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">Keine Orte gefunden</div>`;
-                    return;
-                }
+                if (data && data.daily) {
+                    const sunriseISO = data.daily.sunrise[0];
+                    const sunsetISO = data.daily.sunset[0];
+                    const solarNoonISO = data.daily.solar_noon ? data.daily.solar_noon[0] : null;
 
-                searchResults.innerHTML = '';
-                data.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'px-3.5 py-2.5 hover:bg-slate-700/80 active:bg-slate-700 cursor-pointer text-xs flex items-center gap-2 text-slate-200 transition-colors';
-                    div.innerHTML = `
-                        <i class="fa-solid fa-location-dot text-amber-400 shrink-0"></i>
-                        <span class="truncate">${item.display_name}</span>
-                    `;
-                    div.addEventListener('click', () => {
-                        searchResults.classList.add('hidden');
-                        document.getElementById('searchInput').value = item.display_name.split(',')[0];
-                        updateLocation(item.lat, item.lon, item.display_name.split(',')[0]);
-                    });
-                    searchResults.appendChild(div);
-                });
-            } catch (err) {
-                console.error('Search error:', err);
-                searchResults.innerHTML = `<div class="p-3 text-xs text-rose-400 text-center">Suchfehler aufgetreten</div>`;
+                    const sunriseTime = sunriseISO ? sunriseISO.split('T')[1].substring(0, 5) : '--:--';
+                    const sunsetTime = sunsetISO ? sunsetISO.split('T')[1].substring(0, 5) : '--:--';
+                    const solarNoonTime = solarNoonISO ? solarNoonISO.split('T')[1].substring(0, 5) : '--:--';
+
+                    document.getElementById('sunrise').innerText = sunriseTime;
+                    document.getElementById('sunset').innerText = sunsetTime;
+                    document.getElementById('solarnoon').innerText = solarNoonTime;
+
+                    if (sunriseISO && sunsetISO) {
+                        const srDate = new Date(sunriseISO);
+                        const ssDate = new Date(sunsetISO);
+                        const diffMs = ssDate - srDate;
+                        const diffHrs = Math.floor(diffMs / 3600000);
+                        const diffMins = Math.round((diffMs % 3600000) / 60000);
+                        document.getElementById('daylength').innerText = `${diffHrs} Std ${diffMins} Min`;
+
+                        drawSunArc(srDate, ssDate);
+                    }
+                    showStatus("");
+                }
+            } catch (e) {
+                showStatus("Fehler beim Abrufen der Sonnendaten.");
             }
         }
 
-        // Loading Skeleton UI state
-        function showLoadingState() {
-            document.getElementById('sunriseTime').innerText = '...';
-            document.getElementById('sunsetTime').innerText = '...';
-            document.getElementById('dayLength').innerText = '...';
-            document.getElementById('solarNoonTime').innerText = '...';
+        function drawSunArc(sunriseDate, sunsetDate) {
+            const canvas = document.getElementById('sunCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(10, h - 20);
+            ctx.lineTo(w - 10, h - 20);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(20, h - 20);
+            ctx.quadraticCurveTo(w / 2, 10, w - 20, h - 20);
+            ctx.stroke();
+
+            const now = new Date();
+            const selectedDate = new Date(dateInput.value);
+            const isToday = now.toDateString() === selectedDate.toDateString();
+
+            if (isToday) {
+                const totalDay = sunsetDate - sunriseDate;
+                const currentProgress = (now - sunriseDate) / totalDay;
+
+                if (currentProgress >= 0 && currentProgress <= 1) {
+                    const cx = 20 + currentProgress * (w - 40);
+                    const t = currentProgress;
+                    const cy = (1 - t) * (1 - t) * (h - 20) + 2 * (1 - t) * t * 10 + t * t * (h - 20);
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
         }
+
+        window.onload = initMap;
     </script>
 </body>
 </html>

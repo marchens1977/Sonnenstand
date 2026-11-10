@@ -204,6 +204,7 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
     <script>
         let map, marker;
         let currentLat = 50.04;
@@ -316,53 +317,49 @@
             }
         }
 
-        async function updateData() {
-            const date = dateInput.value;
-            if (!date) return;
+        function formatHHMM(dateObj) {
+            if (!dateObj || isNaN(dateObj.getTime())) return '--:--';
+            const hrs = String(dateObj.getHours()).padStart(2, '0');
+            const mins = String(dateObj.getMinutes()).padStart(2, '0');
+            return `${hrs}:${mins}`;
+        }
 
-            showStatus("Berechne Zeiten...");
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLng}&daily=sunrise,sunset&timezone=auto&start_date=${date}&end_date=${date}`;
+        function updateData() {
+            const dateStr = dateInput.value;
+            if (!dateStr) return;
 
-            try {
-                const res = await fetch(url);
-                const data = await res.json();
+            showStatus("");
 
-                if (data && data.daily && data.daily.sunrise && data.daily.sunset) {
-                    const sunriseISO = data.daily.sunrise[0];
-                    const sunsetISO = data.daily.sunset[0];
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const targetDate = new Date(year, month - 1, day, 12, 0, 0);
 
-                    const srDate = new Date(sunriseISO);
-                    const ssDate = new Date(sunsetISO);
+            const times = SunCalc.getTimes(targetDate, currentLat, currentLng);
 
-                    const sunriseTime = sunriseISO.split('T')[1].substring(0, 5);
-                    const sunsetTime = sunsetISO.split('T')[1].substring(0, 5);
+            const srDate = times.sunrise;
+            const ssDate = times.sunset;
+            const noonDate = times.solarNoon;
 
-                    const noonMs = srDate.getTime() + (ssDate.getTime() - srDate.getTime()) / 2;
-                    const noonDate = new Date(noonMs);
-                    const solarNoonHours = String(noonDate.getHours()).padStart(2, '0');
-                    const solarNoonMinutes = String(noonDate.getMinutes()).padStart(2, '0');
-                    const solarNoonTime = `${solarNoonHours}:${solarNoonMinutes}`;
+            if (srDate && ssDate && !isNaN(srDate.getTime()) && !isNaN(ssDate.getTime())) {
+                document.getElementById('sunrise').innerText = formatHHMM(srDate);
+                document.getElementById('sunset').innerText = formatHHMM(ssDate);
+                document.getElementById('solarnoon').innerText = formatHHMM(noonDate);
 
-                    document.getElementById('sunrise').innerText = sunriseTime;
-                    document.getElementById('sunset').innerText = sunsetTime;
-                    document.getElementById('solarnoon').innerText = solarNoonTime;
+                const diffMs = ssDate - srDate;
+                const diffHrs = Math.floor(diffMs / 3600000);
+                const diffMins = Math.round((diffMs % 3600000) / 60000);
+                document.getElementById('daylength').innerText = `${diffHrs} Std ${diffMins} Min`;
 
-                    const diffMs = ssDate - srDate;
-                    const diffHrs = Math.floor(diffMs / 3600000);
-                    const diffMins = Math.round((diffMs % 3600000) / 60000);
-                    document.getElementById('daylength').innerText = `${diffHrs} Std ${diffMins} Min`;
-
-                    drawSunArc(srDate, ssDate);
-                    showStatus("");
-                } else {
-                    showStatus("Keine Daten erhalten.");
-                }
-            } catch (e) {
-                showStatus("Fehler beim Abrufen der Sonnendaten.");
+                drawSunArc(srDate, ssDate, targetDate);
+            } else {
+                showStatus("Polartag oder Polarnacht.");
+                document.getElementById('sunrise').innerText = "--:--";
+                document.getElementById('sunset').innerText = "--:--";
+                document.getElementById('solarnoon').innerText = "--:--";
+                document.getElementById('daylength').innerText = "-- Std -- Min";
             }
         }
 
-        function drawSunArc(sunriseDate, sunsetDate) {
+        function drawSunArc(sunriseDate, sunsetDate, selectedDate) {
             const canvas = document.getElementById('sunCanvas');
             const ctx = canvas.getContext('2d');
             canvas.width = canvas.offsetWidth;
@@ -388,7 +385,6 @@
             ctx.stroke();
 
             const now = new Date();
-            const selectedDate = new Date(dateInput.value);
             const isToday = now.toDateString() === selectedDate.toDateString();
 
             if (isToday) {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sonnenstand & Dämmerung</title>
+    <title>Sonnenstand</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
@@ -151,14 +151,14 @@
 <body>
     <div class="container">
         <header>
-            <h1>Sonnenauf- & Untergang</h1>
+            <h1>Sonnenstand</h1>
         </header>
 
         <div class="card">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Ort suchen...">
+                <input type="text" id="searchInput" placeholder="Ort suchen..." aria-label="Ort suchen">
                 <button onclick="searchLocation()">Suchen</button>
-                <button class="secondary" onclick="useGPS()" title="Mein Standort">📍</button>
+                <button class="secondary" onclick="useGPS()" title="Mein Standort" aria-label="Mein Standort">📍</button>
             </div>
             <div id="map"></div>
         </div>
@@ -166,7 +166,7 @@
         <div class="card">
             <div class="date-controls">
                 <button class="secondary" onclick="changeDate(-1)">◄ Tag</button>
-                <input type="date" id="dateInput" onchange="updateData()">
+                <input type="date" id="dateInput" onchange="updateData()" aria-label="Datum">
                 <button class="secondary" onclick="changeDate(1)">Tag ►</button>
             </div>
             <div class="quick-dates">
@@ -179,6 +179,14 @@
             <div id="locationName" class="location-info">Standort wird ermittelt...</div>
 
             <div class="results-grid">
+                <div class="result-box">
+                    <div class="label">🌄 Morgendämmerung</div>
+                    <div class="val" id="dawn">--:--</div>
+                </div>
+                <div class="result-box">
+                    <div class="label">🌆 Abenddämmerung</div>
+                    <div class="val" id="dusk">--:--</div>
+                </div>
                 <div class="result-box">
                     <div class="label">🌅 Sonnenaufgang</div>
                     <div class="val" id="sunrise">--:--</div>
@@ -206,12 +214,29 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
     <script>
+        const DEFAULT_LAT = 50.04;
+        const DEFAULT_LNG = 8.24;
+
         let map, marker;
-        let currentLat = 50.04;
-        let currentLng = 8.24;
+        let currentLat = DEFAULT_LAT;
+        let currentLng = DEFAULT_LNG;
 
         const dateInput = document.getElementById('dateInput');
-        dateInput.value = new Date().toISOString().split('T')[0];
+        dateInput.value = formatDateForInput(new Date());
+
+        // Datum im Format JJJJ-MM-TT, in der Ortszeit des Geräts (nicht UTC)
+        function formatDateForInput(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        // Liest das Datumsfeld und gibt Mittag des gewählten Tages zurück
+        function selectedDate() {
+            const [year, month, day] = dateInput.value.split('-').map(Number);
+            return new Date(year, month - 1, day, 12, 0, 0);
+        }
 
         function initMap() {
             map = L.map('map').setView([currentLat, currentLng], 11);
@@ -221,13 +246,17 @@
 
             marker = L.marker([currentLat, currentLng], { draggable: true }).addTo(map);
 
-            map.on('click', function(e) {
+            map.on('click', function (e) {
                 setPosition(e.latlng.lat, e.latlng.lng);
             });
 
-            marker.on('dragend', function(e) {
+            marker.on('dragend', function () {
                 const pos = marker.getLatLng();
                 setPosition(pos.lat, pos.lng);
+            });
+
+            document.getElementById('searchInput').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') searchLocation();
             });
 
             useGPS();
@@ -237,19 +266,19 @@
             showStatus("Ermittle GPS-Standort...");
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    function(position) {
+                    function (position) {
                         setPosition(position.coords.latitude, position.coords.longitude, true);
                         showStatus("");
                     },
-                    function(error) {
+                    function () {
                         showStatus("GPS nicht freigegeben. Standardstandort gewählt.");
-                        setPosition(50.04, 8.24, true);
+                        setPosition(DEFAULT_LAT, DEFAULT_LNG, true);
                     },
                     { enableHighAccuracy: true, timeout: 5000 }
                 );
             } else {
                 showStatus("GPS wird von diesem Browser nicht unterstützt.");
-                setPosition(50.04, 8.24, true);
+                setPosition(DEFAULT_LAT, DEFAULT_LNG, true);
             }
         }
 
@@ -269,14 +298,14 @@
         }
 
         function setToday() {
-            dateInput.value = new Date().toISOString().split('T')[0];
+            dateInput.value = formatDateForInput(new Date());
             updateData();
         }
 
         function setDateOffset(offsetDays) {
-            const d = new Date(dateInput.value || new Date());
+            const d = selectedDate();
             d.setDate(d.getDate() + offsetDays);
-            dateInput.value = d.toISOString().split('T')[0];
+            dateInput.value = formatDateForInput(d);
             updateData();
         }
 
@@ -285,11 +314,12 @@
         }
 
         async function searchLocation() {
-            const query = document.getElementById('searchInput').value;
+            const query = document.getElementById('searchInput').value.trim();
             if (!query) return;
             showStatus("Suche Ort...");
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=de&q=${encodeURIComponent(query)}`;
+                const res = await fetch(url);
                 const data = await res.json();
                 if (data && data.length > 0) {
                     const lat = parseFloat(data[0].lat);
@@ -307,7 +337,8 @@
 
         async function reverseGeocode(lat, lng) {
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&accept-language=de&lat=${lat}&lon=${lng}`;
+                const res = await fetch(url);
                 const data = await res.json();
                 if (data && data.display_name) {
                     document.getElementById('locationName').innerText = data.display_name;
@@ -324,25 +355,29 @@
             return `${hrs}:${mins}`;
         }
 
-        function updateData() {
-            const dateStr = dateInput.value;
-            if (!dateStr) return;
+        function resetResults() {
+            ['dawn', 'dusk', 'sunrise', 'sunset', 'solarnoon'].forEach(id => {
+                document.getElementById(id).innerText = "--:--";
+            });
+            document.getElementById('daylength').innerText = "-- Std -- Min";
+        }
 
+        function updateData() {
+            if (!dateInput.value) return;
             showStatus("");
 
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const targetDate = new Date(year, month - 1, day, 12, 0, 0);
-
+            const targetDate = selectedDate();
             const times = SunCalc.getTimes(targetDate, currentLat, currentLng);
 
             const srDate = times.sunrise;
             const ssDate = times.sunset;
-            const noonDate = times.solarNoon;
 
             if (srDate && ssDate && !isNaN(srDate.getTime()) && !isNaN(ssDate.getTime())) {
+                document.getElementById('dawn').innerText = formatHHMM(times.dawn);
+                document.getElementById('dusk').innerText = formatHHMM(times.dusk);
                 document.getElementById('sunrise').innerText = formatHHMM(srDate);
                 document.getElementById('sunset').innerText = formatHHMM(ssDate);
-                document.getElementById('solarnoon').innerText = formatHHMM(noonDate);
+                document.getElementById('solarnoon').innerText = formatHHMM(times.solarNoon);
 
                 const diffMs = ssDate - srDate;
                 const diffHrs = Math.floor(diffMs / 3600000);
@@ -352,24 +387,32 @@
                 drawSunArc(srDate, ssDate, targetDate);
             } else {
                 showStatus("Polartag oder Polarnacht.");
-                document.getElementById('sunrise').innerText = "--:--";
-                document.getElementById('sunset').innerText = "--:--";
-                document.getElementById('solarnoon').innerText = "--:--";
-                document.getElementById('daylength').innerText = "-- Std -- Min";
+                resetResults();
+                drawSunArc(null, null, targetDate);
             }
         }
 
-        function drawSunArc(sunriseDate, sunsetDate, selectedDate) {
+        // Punkt auf der (quadratischen) Bezier-Kurve des Sonnenbogens
+        function arcPoint(t, w, h) {
+            const x = (1 - t) * (1 - t) * 20 + 2 * (1 - t) * t * (w / 2) + t * t * (w - 20);
+            const y = (1 - t) * (1 - t) * (h - 20) + 2 * (1 - t) * t * 10 + t * t * (h - 20);
+            return { x, y };
+        }
+
+        function drawSunArc(sunriseDate, sunsetDate, selectedDay) {
             const canvas = document.getElementById('sunCanvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
 
-            const w = canvas.width;
-            const h = canvas.height;
-
+            // Scharf auch auf Bildschirmen mit hoher Auflösung (Handy)
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.offsetWidth;
+            const h = canvas.offsetHeight;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             ctx.clearRect(0, 0, w, h);
 
+            // Horizont
             ctx.strokeStyle = '#334155';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -377,6 +420,7 @@
             ctx.lineTo(w - 10, h - 20);
             ctx.stroke();
 
+            // Sonnenbogen
             ctx.strokeStyle = '#f59e0b';
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -384,23 +428,20 @@
             ctx.quadraticCurveTo(w / 2, 10, w - 20, h - 20);
             ctx.stroke();
 
+            if (!sunriseDate || !sunsetDate) return;
+
+            // Aktuelle Sonnenposition, nur wenn der gewählte Tag heute ist
             const now = new Date();
-            const isToday = now.toDateString() === selectedDate.toDateString();
+            const isToday = now.toDateString() === selectedDay.toDateString();
+            if (!isToday) return;
 
-            if (isToday) {
-                const totalDay = sunsetDate - sunriseDate;
-                const currentProgress = (now - sunriseDate) / totalDay;
-
-                if (currentProgress >= 0 && currentProgress <= 1) {
-                    const cx = 20 + currentProgress * (w - 40);
-                    const t = currentProgress;
-                    const cy = (1 - t) * (1 - t) * (h - 20) + 2 * (1 - t) * t * 10 + t * t * (h - 20);
-
-                    ctx.fillStyle = '#f59e0b';
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+            const progress = (now - sunriseDate) / (sunsetDate - sunriseDate);
+            if (progress >= 0 && progress <= 1) {
+                const p = arcPoint(progress, w, h);
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 

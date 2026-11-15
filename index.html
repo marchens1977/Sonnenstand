@@ -198,6 +198,8 @@
         .tz-hint[hidden] { display: none; }
         #map { height: 260px; border-radius: 18px; overflow: hidden; border: 1px solid var(--card-border); z-index: 1; }
         .leaflet-container { background: #0b1026; font-family: inherit; }
+        /* Helle OpenStreetMap-Karte per Filter in einen Nachtmodus umfärben */
+        .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.7); }
         .leaflet-bar { border: none !important; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4) !important; }
         .leaflet-bar a { background: #161c38 !important; color: #fff !important; border-color: rgba(255, 255, 255, 0.08) !important; }
         .leaflet-control-attribution { background: rgba(7, 11, 26, 0.7) !important; color: var(--muted) !important; }
@@ -446,9 +448,9 @@
     function initMap() {
         map = L.map('map', { zoomControl: false }).setView([state.lat, state.lng], 11);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd', maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
 
         const icon = L.divIcon({ className: 'sun-marker', html: '<span></span>', iconSize: [26, 26], iconAnchor: [13, 13] });

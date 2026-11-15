@@ -2,448 +2,870 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#070b1a">
     <title>Sonnenstand</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☀️</text></svg>">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent-color: #f59e0b;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
+            --bg: #070b1a;
+            --card: rgba(255, 255, 255, 0.045);
+            --card-border: rgba(255, 255, 255, 0.09);
+            --text: #f5f7ff;
+            --muted: #9aa4c7;
+            --gold: #fbbf24;
+            --orange: #f97316;
+            --rose: #f472b6;
+            --sky-top: #0b1026;
+            --sky-bottom: #1d2552;
+            --radius: 22px;
         }
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { -webkit-text-size-adjust: 100%; }
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(900px 500px at 50% -150px, rgba(251, 191, 36, 0.10), transparent 60%),
+                radial-gradient(700px 500px at 100% 100%, rgba(99, 102, 241, 0.12), transparent 60%);
+            background-attachment: fixed;
+            color: var(--text);
             min-height: 100vh;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+            padding: 16px 16px calc(40px + env(safe-area-inset-bottom));
+            -webkit-font-smoothing: antialiased;
         }
-        header {
-            text-align: center;
-            padding: 8px 0;
-        }
-        header h1 {
-            font-size: 1.4rem;
-            color: var(--accent-color);
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+        button { font: inherit; color: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+        .app { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
         .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px solid var(--border-color);
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 20px;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
         }
-        .search-box {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
+        .card-title {
+            font-size: 0.74rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 16px;
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
         }
-        input[type="text"], input[type="date"] {
-            flex: 1;
-            padding: 10px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: #0f172a;
-            color: var(--text-color);
-            font-size: 0.95rem;
+        .hint { font-size: 0.78rem; color: var(--muted); margin-top: 12px; line-height: 1.45; }
+
+        /* ---------- Himmel (oben) ---------- */
+        .hero {
+            position: relative; overflow: hidden;
+            border-radius: 28px;
+            padding: 20px 18px 10px;
+            background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+            text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
         }
-        button {
-            background: var(--accent-color);
-            color: #0f172a;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            min-height: 42px;
+        .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .brand-sun {
+            width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+            background: radial-gradient(circle at 40% 40%, #fff7d1, #fbbf24 55%, #f97316);
+            box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.55);
         }
-        button.secondary {
-            background: #334155;
-            color: var(--text-color);
+        .brand h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+        .place-chip {
+            display: flex; align-items: center; gap: 6px;
+            max-width: 55%; padding: 8px 12px; border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.18);
+            font-size: 0.82rem; font-weight: 600;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
-        #map {
-            height: 280px;
-            border-radius: 8px;
-            z-index: 1;
+        .place-chip svg.i { width: 15px; height: 15px; }
+        .place-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .countdown { margin-top: 22px; }
+        .cd-label { font-size: 0.85rem; opacity: 0.85; font-weight: 500; }
+        .cd-value { font-size: 2.1rem; font-weight: 800; letter-spacing: -0.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+        #sky { display: block; width: 100%; height: 190px; margin-top: 8px; }
+
+        /* ---------- Datum ---------- */
+        .date-nav { display: flex; align-items: center; gap: 10px; }
+        .icon-btn {
+            width: 48px; height: 48px; border-radius: 16px; flex-shrink: 0;
+            display: grid; place-items: center;
+            background: rgba(255, 255, 255, 0.07); border: 1px solid var(--card-border);
+            transition: transform 0.15s ease, background 0.2s ease;
         }
-        .date-controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
+        .icon-btn:active { transform: scale(0.93); background: rgba(255, 255, 255, 0.14); }
+        .date-display { position: relative; flex: 1; min-width: 0; text-align: center; padding: 4px 0; }
+        .date-rel { display: block; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+        .date-main { display: block; font-size: 1.02rem; font-weight: 600; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #dateInput {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none;
         }
-        .quick-dates {
-            display: flex;
-            gap: 6px;
-            width: 100%;
-            justify-content: space-between;
+        .today-btn {
+            display: block; margin: 14px auto 0; padding: 9px 18px; border-radius: 999px;
+            background: linear-gradient(135deg, var(--gold), var(--orange)); color: #1a1205;
+            font-weight: 700; font-size: 0.86rem;
+            box-shadow: 0 8px 20px -8px rgba(249, 115, 22, 0.7);
         }
-        .quick-dates button {
-            flex: 1;
-            padding: 8px 4px;
-            font-size: 0.85rem;
+        .today-btn[hidden] { display: none; }
+
+        /* ---------- Sonnenzeiten ---------- */
+        .big-times { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .big-time { border-radius: 18px; padding: 16px 14px; border: 1px solid var(--card-border); }
+        .big-time.rise { background: linear-gradient(145deg, rgba(251, 191, 36, 0.20), rgba(249, 115, 22, 0.05)); }
+        .big-time.set { background: linear-gradient(145deg, rgba(244, 114, 182, 0.18), rgba(139, 92, 246, 0.06)); }
+        .big-time svg.i { width: 26px; height: 26px; }
+        .big-time.rise svg.i { color: var(--gold); }
+        .big-time.set svg.i { color: var(--rose); }
+        .bt-label { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+        .bt-value { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+        .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+        .mini { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 14px; }
+        .mini-label { font-size: 0.76rem; color: var(--muted); }
+        .mini-value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .mini-sub { font-size: 0.74rem; color: var(--muted); margin-top: 3px; }
+        .mini-sub.plus { color: #4ade80; }
+        .mini-sub.minus { color: #fb923c; }
+        .golden {
+            margin-top: 12px; border-radius: 16px; padding: 14px 16px;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(249, 115, 22, 0.04));
+            border: 1px solid rgba(251, 191, 36, 0.25);
         }
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 12px;
+        .golden-title { font-size: 0.86rem; font-weight: 700; color: var(--gold); margin-bottom: 8px; }
+        .golden-row { display: flex; justify-content: space-between; font-size: 0.92rem; padding: 4px 0; }
+        .golden-row span { color: var(--muted); }
+        .golden-row b { font-variant-numeric: tabular-nums; }
+
+        /* ---------- Tagesverlauf ---------- */
+        .timeline { position: relative; margin: 6px 0 0; }
+        .timeline-bar { height: 20px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+        .timeline-now {
+            position: absolute; top: -6px; width: 4px; height: 32px; border-radius: 4px;
+            background: #fff; transform: translateX(-50%);
+            box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.6);
         }
-        .result-box {
-            background: #0f172a;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid var(--border-color);
+        .timeline-now[hidden] { display: none; }
+        .timeline-scale { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+        .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; font-size: 0.78rem; color: var(--muted); }
+        .legend span { display: flex; align-items: center; gap: 6px; }
+        .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+        /* ---------- Sonne jetzt ---------- */
+        .live { display: flex; align-items: center; gap: 6px; color: #4ade80; letter-spacing: 0.1em; }
+        .live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: blink 1.6s infinite; }
+        .live[hidden] { display: none; }
+        @keyframes blink { 50% { opacity: 0.25; } }
+        .sun-now { display: grid; grid-template-columns: 140px 1fr; gap: 18px; align-items: center; }
+        .skychart { width: 140px; height: 140px; }
+        .skychart .ring { fill: rgba(255, 255, 255, 0.03); stroke: rgba(255, 255, 255, 0.25); stroke-width: 1; }
+        .skychart .ring.faint { fill: none; stroke: rgba(255, 255, 255, 0.10); stroke-dasharray: 2 3; }
+        .skychart .axis { stroke: rgba(255, 255, 255, 0.08); stroke-width: 1; }
+        .skychart .dir { fill: var(--muted); font-size: 10px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+        .skychart .ray { stroke: rgba(251, 191, 36, 0.6); stroke-width: 1.5; stroke-dasharray: 3 3; }
+        .skychart .sundot { fill: #fde68a; filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.9)); transition: cx 0.6s, cy 0.6s; }
+        .skychart .sundot.below { fill: rgba(255, 255, 255, 0.3); filter: none; }
+        .sun-stats { display: flex; flex-direction: column; gap: 12px; }
+        .sun-stats div { display: flex; flex-direction: column; }
+        .sun-stats span { font-size: 0.76rem; color: var(--muted); }
+        .sun-stats b { font-size: 1.15rem; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+        /* ---------- Standort ---------- */
+        .search { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+        .search-field { position: relative; min-width: 0; }
+        .search-field > svg.i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+        .search-field input {
+            width: 100%; min-width: 0; height: 48px; padding: 0 52px 0 44px;
+            border-radius: 16px; border: 1px solid var(--card-border);
+            background: rgba(0, 0, 0, 0.25); color: var(--text); font-size: 1rem; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .result-box .label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 4px;
+        .search-field input::placeholder { color: #6b7499; }
+        .search-field input:focus { border-color: rgba(251, 191, 36, 0.6); box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.15); }
+        .go-btn {
+            position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; border-radius: 12px;
+            display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--gold), var(--orange)); color: #1a1205;
         }
-        .result-box .val {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: var(--accent-color);
+        .go-btn svg.i { width: 18px; height: 18px; }
+        .gps-btn { color: var(--gold); }
+        .gps-btn.busy svg { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .place-full { margin: 16px 0 12px; }
+        .place-full b { display: block; font-size: 1rem; line-height: 1.35; }
+        .place-full span { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+        .tz-hint { font-size: 0.78rem; color: #fb923c; margin-bottom: 12px; line-height: 1.45; }
+        .tz-hint[hidden] { display: none; }
+        #map { height: 260px; border-radius: 18px; overflow: hidden; border: 1px solid var(--card-border); z-index: 1; }
+        .leaflet-container { background: #0b1026; font-family: inherit; }
+        .leaflet-bar { border: none !important; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4) !important; }
+        .leaflet-bar a { background: #161c38 !important; color: #fff !important; border-color: rgba(255, 255, 255, 0.08) !important; }
+        .leaflet-control-attribution { background: rgba(7, 11, 26, 0.7) !important; color: var(--muted) !important; }
+        .leaflet-control-attribution a { color: var(--gold) !important; }
+        .sun-marker span {
+            display: block; width: 26px; height: 26px; border-radius: 50%;
+            background: radial-gradient(circle, #fff7d1 0 30%, #fbbf24 32% 58%, rgba(249, 115, 22, 0.35) 60%);
+            animation: pulse 2.4s infinite;
         }
-        .full-width {
-            grid-column: span 2;
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.55); }
+            70% { box-shadow: 0 0 0 18px rgba(251, 191, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
         }
-        .location-info {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-            text-align: center;
+
+        /* ---------- Hinweis-Meldung ---------- */
+        .toast {
+            position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 1000;
+            transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+            padding: 12px 18px; border-radius: 999px; max-width: calc(100% - 32px);
+            background: rgba(22, 28, 56, 0.92); border: 1px solid rgba(255, 255, 255, 0.12);
+            font-size: 0.88rem; font-weight: 600; text-align: center;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            transition: opacity 0.25s, transform 0.25s;
         }
-        canvas {
-            width: 100%;
-            height: 120px;
-            margin-top: 8px;
-        }
-        .status {
-            font-size: 0.85rem;
-            color: var(--accent-color);
-            text-align: center;
-            min-height: 20px;
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before { animation: none !important; transition: none !important; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Sonnenstand</h1>
-        </header>
+<main class="app">
 
-        <div class="card">
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Ort suchen..." aria-label="Ort suchen">
-                <button onclick="searchLocation()">Suchen</button>
-                <button class="secondary" onclick="useGPS()" title="Mein Standort" aria-label="Mein Standort">📍</button>
-            </div>
-            <div id="map"></div>
+    <!-- Himmel mit Sonnenkurve -->
+    <section class="hero" id="hero">
+        <div class="hero-top">
+            <div class="brand"><span class="brand-sun"></span><h1>Sonnenstand</h1></div>
+            <button class="place-chip" id="placeChip" type="button" aria-label="Standort ändern">
+                <svg class="i" viewBox="0 0 24 24"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                <span id="placeShort">Standort …</span>
+            </button>
         </div>
+        <div class="countdown">
+            <div class="cd-label" id="countdownLabel">&nbsp;</div>
+            <div class="cd-value" id="countdown">--</div>
+        </div>
+        <canvas id="sky" aria-label="Sonnenhöhe im Tagesverlauf"></canvas>
+    </section>
 
-        <div class="card">
-            <div class="date-controls">
-                <button class="secondary" onclick="changeDate(-1)">◄ Tag</button>
-                <input type="date" id="dateInput" onchange="updateData()" aria-label="Datum">
-                <button class="secondary" onclick="changeDate(1)">Tag ►</button>
+    <!-- Datum -->
+    <section class="card">
+        <div class="date-nav">
+            <button class="icon-btn" id="prevDay" type="button" aria-label="Einen Tag zurück">
+                <svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <label class="date-display">
+                <span class="date-rel" id="dateRel">Heute</span>
+                <span class="date-main" id="dateMain">--</span>
+                <input type="date" id="dateInput" aria-label="Datum wählen">
+            </label>
+            <button class="icon-btn" id="nextDay" type="button" aria-label="Einen Tag vor">
+                <svg class="i" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+        </div>
+        <button class="today-btn" id="todayBtn" type="button" hidden>Zurück zu heute</button>
+    </section>
+
+    <!-- Sonnenzeiten -->
+    <section class="card">
+        <div class="card-title">Sonnenzeiten</div>
+        <div class="big-times">
+            <div class="big-time rise">
+                <svg class="i" viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0"/><path d="M12 2v7M4.2 10.2l1.4 1.4M1 18h2M21 18h2M18.4 11.6l1.4-1.4M23 22H1M8 6l4-4 4 4"/></svg>
+                <div class="bt-label">Sonnenaufgang</div>
+                <div class="bt-value" id="sunrise">--:--</div>
             </div>
-            <div class="quick-dates">
-                <button onclick="setToday()">Heute</button>
-            </div>
-
-            <div id="status" class="status"></div>
-            <div id="locationName" class="location-info">Standort wird ermittelt...</div>
-
-            <div class="results-grid">
-                <div class="result-box">
-                    <div class="label">🌄 Morgendämmerung</div>
-                    <div class="val" id="dawn">--:--</div>
-                </div>
-                <div class="result-box">
-                    <div class="label">🌆 Abenddämmerung</div>
-                    <div class="val" id="dusk">--:--</div>
-                </div>
-                <div class="result-box">
-                    <div class="label">🌅 Sonnenaufgang</div>
-                    <div class="val" id="sunrise">--:--</div>
-                </div>
-                <div class="result-box">
-                    <div class="label">🌇 Sonnenuntergang</div>
-                    <div class="val" id="sunset">--:--</div>
-                </div>
-                <div class="result-box">
-                    <div class="label">☀️ Höchststand</div>
-                    <div class="val" id="solarnoon">--:--</div>
-                </div>
-                <div class="result-box">
-                    <div class="label">⏱️ Tageslänge</div>
-                    <div class="val" id="daylength">-- Std -- Min</div>
-                </div>
-                <div class="result-box full-width">
-                    <div class="label">Sonnenverlauf</div>
-                    <canvas id="sunCanvas"></canvas>
-                </div>
+            <div class="big-time set">
+                <svg class="i" viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0"/><path d="M12 9V2M4.2 10.2l1.4 1.4M1 18h2M21 18h2M18.4 11.6l1.4-1.4M23 22H1M16 5l-4 4-4-4"/></svg>
+                <div class="bt-label">Sonnenuntergang</div>
+                <div class="bt-value" id="sunset">--:--</div>
             </div>
         </div>
-    </div>
+        <div class="mini-grid">
+            <div class="mini">
+                <div class="mini-label">Morgendämmerung</div>
+                <div class="mini-value" id="dawn">--:--</div>
+                <div class="mini-sub">es wird hell</div>
+            </div>
+            <div class="mini">
+                <div class="mini-label">Abenddämmerung</div>
+                <div class="mini-value" id="dusk">--:--</div>
+                <div class="mini-sub">es wird dunkel</div>
+            </div>
+            <div class="mini">
+                <div class="mini-label">Höchststand</div>
+                <div class="mini-value" id="solarnoon">--:--</div>
+                <div class="mini-sub" id="maxAlt">&nbsp;</div>
+            </div>
+            <div class="mini">
+                <div class="mini-label">Tageslänge</div>
+                <div class="mini-value" id="daylength">--</div>
+                <div class="mini-sub" id="dayDiff">&nbsp;</div>
+            </div>
+        </div>
+        <div class="golden">
+            <div class="golden-title">✦ Goldene Stunde · weiches Fotolicht</div>
+            <div class="golden-row"><span>Morgens</span><b id="goldenMorning">--</b></div>
+            <div class="golden-row"><span>Abends</span><b id="goldenEvening">--</b></div>
+        </div>
+    </section>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
-    <script>
-        const DEFAULT_LAT = 50.04;
-        const DEFAULT_LNG = 8.24;
+    <!-- Tagesverlauf -->
+    <section class="card">
+        <div class="card-title">Tagesverlauf (24 Stunden)</div>
+        <div class="timeline">
+            <div class="timeline-bar" id="timelineBar"></div>
+            <div class="timeline-now" id="timelineNow" hidden></div>
+        </div>
+        <div class="timeline-scale"><span>0 Uhr</span><span>6</span><span>12</span><span>18</span><span>24 Uhr</span></div>
+        <div class="legend">
+            <span><i style="background:#0d1130;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)"></i>Nacht</span>
+            <span><i style="background:#5b4bc4"></i>Dämmerung</span>
+            <span><i style="background:#f59e0b"></i>Goldene Stunde</span>
+            <span><i style="background:#fde68a"></i>Tag</span>
+        </div>
+    </section>
 
-        let map, marker;
-        let currentLat = DEFAULT_LAT;
-        let currentLng = DEFAULT_LNG;
+    <!-- Sonne jetzt -->
+    <section class="card">
+        <div class="card-title"><span id="sunNowTitle">Sonne jetzt</span><span class="live" id="liveBadge">LIVE</span></div>
+        <div class="sun-now">
+            <svg class="skychart" viewBox="-12 -12 144 144" aria-label="Himmelskarte mit Sonnenposition">
+                <circle cx="60" cy="60" r="56" class="ring"/>
+                <circle cx="60" cy="60" r="37.3" class="ring faint"/>
+                <circle cx="60" cy="60" r="18.7" class="ring faint"/>
+                <line x1="60" y1="4" x2="60" y2="116" class="axis"/>
+                <line x1="4" y1="60" x2="116" y2="60" class="axis"/>
+                <text x="60" y="-5" class="dir">N</text>
+                <text x="125" y="60" class="dir">O</text>
+                <text x="60" y="125" class="dir">S</text>
+                <text x="-5" y="60" class="dir">W</text>
+                <line id="sunRay" x1="60" y1="60" x2="60" y2="60" class="ray"/>
+                <circle id="sunDot" cx="60" cy="60" r="7" class="sundot"/>
+            </svg>
+            <div class="sun-stats">
+                <div><span>Höhe über dem Horizont</span><b id="altVal">--</b></div>
+                <div><span>Himmelsrichtung</span><b id="azVal">--</b></div>
+                <div><span>Schatten eines 1-m-Stabs</span><b id="shadowVal">--</b></div>
+            </div>
+        </div>
+        <p class="hint">Himmelskarte: Mitte = Sonne genau über dir, Rand = Horizont.</p>
+    </section>
 
-        const dateInput = document.getElementById('dateInput');
-        dateInput.value = formatDateForInput(new Date());
+    <!-- Standort -->
+    <section class="card" id="locationCard">
+        <div class="card-title">Standort</div>
+        <form class="search" id="searchForm" autocomplete="off">
+            <div class="search-field">
+                <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input type="text" id="searchInput" placeholder="Ort suchen …" enterkeyhint="search" aria-label="Ort suchen">
+                <button class="go-btn" type="submit" aria-label="Suchen">
+                    <svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </button>
+            </div>
+            <button class="icon-btn gps-btn" id="gpsBtn" type="button" aria-label="Mein Standort">
+                <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>
+            </button>
+        </form>
+        <div class="place-full"><b id="placeFull">--</b><span id="coords"></span></div>
+        <p class="tz-hint" id="tzHint" hidden>Hinweis: Die Uhrzeiten werden in der Zeitzone deines Handys angezeigt, nicht in der Ortszeit dieses Ortes.</p>
+        <div id="map"></div>
+        <p class="hint">Tippe auf die Karte oder ziehe die Sonne, um den Ort zu ändern.</p>
+    </section>
 
-        // Datum im Format JJJJ-MM-TT, in der Ortszeit des Geräts (nicht UTC)
-        function formatDateForInput(d) {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-        }
+</main>
 
-        // Liest das Datumsfeld und gibt Mittag des gewählten Tages zurück
-        function selectedDate() {
-            const [year, month, day] = dateInput.value.split('-').map(Number);
-            return new Date(year, month - 1, day, 12, 0, 0);
-        }
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-        function initMap() {
-            map = L.map('map').setView([currentLat, currentLng], 11);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(map);
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+<script>
+    const DEFAULT_LAT = 50.04;
+    const DEFAULT_LNG = 8.24;
+    const DAY_MS = 86400000;
+    const RAD = 180 / Math.PI;
+    const STORAGE_KEY = 'sonnenstand-ort';
 
-            marker = L.marker([currentLat, currentLng], { draggable: true }).addTo(map);
+    const $ = id => document.getElementById(id);
+    const state = { lat: DEFAULT_LAT, lng: DEFAULT_LNG, name: '', date: startOfDay(new Date()) };
+    let map, marker, geoRequest = 0, toastTimer;
 
-            map.on('click', function (e) {
-                setPosition(e.latlng.lat, e.latlng.lng);
-            });
+    /* ---------- Hilfsfunktionen ---------- */
+    function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+    function noonOf(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12); }
+    function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+    function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+    function isToday() { return sameDay(state.date, new Date()); }
+    function valid(d) { return d instanceof Date && !isNaN(d.getTime()); }
+    function hhmm(d) { return valid(d) ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '--:--'; }
+    function deg(a) { return a.toFixed(1).replace('.', ',') + '°'; }
+    function duration(ms) {
+        const total = Math.round(ms / 60000);
+        const h = Math.floor(total / 60), m = total % 60;
+        return h > 0 ? `${h} Std ${m} Min` : `${m} Min`;
+    }
+    function toInputValue(d) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function sunPos(date) {
+        const p = SunCalc.getPosition(date, state.lat, state.lng);
+        return { alt: p.altitude * RAD, az: (p.azimuth * RAD + 180 + 360) % 360, altRad: p.altitude };
+    }
+    function direction(az) {
+        const dirs = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        return dirs[Math.round(az / 22.5) % 16];
+    }
 
-            marker.on('dragend', function () {
-                const pos = marker.getLatLng();
-                setPosition(pos.lat, pos.lng);
-            });
+    function toast(msg, ms = 2600) {
+        const el = $('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        if (ms > 0) toastTimer = setTimeout(hideToast, ms);
+    }
+    function hideToast() { $('toast').classList.remove('show'); }
 
-            document.getElementById('searchInput').addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') searchLocation();
-            });
-
-            useGPS();
-        }
-
-        function useGPS() {
-            showStatus("Ermittle GPS-Standort...");
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function (position) {
-                        setPosition(position.coords.latitude, position.coords.longitude, true);
-                        showStatus("");
-                    },
-                    function () {
-                        showStatus("GPS nicht freigegeben. Standardstandort gewählt.");
-                        setPosition(DEFAULT_LAT, DEFAULT_LNG, true);
-                    },
-                    { enableHighAccuracy: true, timeout: 5000 }
-                );
-            } else {
-                showStatus("GPS wird von diesem Browser nicht unterstützt.");
-                setPosition(DEFAULT_LAT, DEFAULT_LNG, true);
+    /* ---------- Gespeicherter Ort ---------- */
+    function loadSaved() {
+        try {
+            const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (s && isFinite(s.lat) && isFinite(s.lng)) {
+                state.lat = s.lat; state.lng = s.lng; state.name = s.name || '';
+                return true;
             }
-        }
+        } catch (e) {}
+        return false;
+    }
+    function saveLocation() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ lat: state.lat, lng: state.lng, name: state.name })); } catch (e) {}
+    }
 
-        function setPosition(lat, lng, centerMap = false) {
-            currentLat = lat;
-            currentLng = lng;
-            marker.setLatLng([lat, lng]);
-            if (centerMap) {
-                map.setView([lat, lng], 11);
-            }
-            updateData();
+    /* ---------- Karte ---------- */
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView([state.lat, state.lng], 11);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+        }).addTo(map);
+
+        const icon = L.divIcon({ className: 'sun-marker', html: '<span></span>', iconSize: [26, 26], iconAnchor: [13, 13] });
+        marker = L.marker([state.lat, state.lng], { draggable: true, icon }).addTo(map);
+
+        map.on('click', e => setPosition(e.latlng.lat, e.latlng.lng));
+        marker.on('dragend', () => { const p = marker.getLatLng(); setPosition(p.lat, p.lng); });
+    }
+
+    function setPosition(lat, lng, opts = {}) {
+        state.lat = lat; state.lng = lng;
+        marker.setLatLng([lat, lng]);
+        if (opts.center) map.setView([lat, lng], Math.max(map.getZoom(), 11));
+        if (opts.name) {
+            geoRequest++;            // ältere Adress-Abfragen verwerfen
+            setPlaceName(opts.name);
+        } else {
+            setPlaceName(`${lat.toFixed(3)}°, ${lng.toFixed(3)}°`);
             reverseGeocode(lat, lng);
         }
+        saveLocation();
+        render();
+    }
 
-        function showStatus(msg) {
-            document.getElementById('status').innerText = msg;
-        }
+    function setPlaceName(name) {
+        state.name = name;
+        $('placeShort').textContent = name.split(',')[0];
+        $('placeFull').textContent = name;
+        $('coords').textContent = `${state.lat.toFixed(4)}° N, ${state.lng.toFixed(4)}° O`;
+        // Warnung, wenn der Ort weit außerhalb der Handy-Zeitzone liegt
+        const deviceOffset = -new Date().getTimezoneOffset() / 60;
+        $('tzHint').hidden = Math.abs(state.lng / 15 - deviceOffset) < 2.5;
+    }
 
-        function setToday() {
-            dateInput.value = formatDateForInput(new Date());
-            updateData();
-        }
+    function formatAddress(d) {
+        const a = d.address || {};
+        const town = a.city || a.town || a.village || a.municipality || a.county || '';
+        const part = a.suburb || a.city_district || a.hamlet || '';
+        let parts = [part, town].filter(Boolean);
+        if (part === town) parts = [town];
+        if (a.country && a.country_code !== 'de') parts.push(a.country);
+        if (parts.length) return parts.join(', ');
+        return (d.display_name || '').split(',').slice(0, 2).join(',').trim();
+    }
 
-        function setDateOffset(offsetDays) {
-            const d = selectedDate();
-            d.setDate(d.getDate() + offsetDays);
-            dateInput.value = formatDateForInput(d);
-            updateData();
-        }
+    async function reverseGeocode(lat, lng) {
+        const id = ++geoRequest;
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&accept-language=de&zoom=14&lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            if (id !== geoRequest) return;   // inzwischen wurde ein anderer Ort gewählt
+            const name = data && formatAddress(data);
+            if (name) { setPlaceName(name); saveLocation(); }
+        } catch (e) { /* Koordinaten bleiben stehen */ }
+    }
 
-        function changeDate(days) {
-            setDateOffset(days);
-        }
-
-        async function searchLocation() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) return;
-            showStatus("Suche Ort...");
-            try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=de&q=${encodeURIComponent(query)}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lon = parseFloat(data[0].lon);
-                    setPosition(lat, lon, true);
-                    document.getElementById('locationName').innerText = data[0].display_name;
-                    showStatus("");
-                } else {
-                    showStatus("Ort nicht gefunden.");
-                }
-            } catch (e) {
-                showStatus("Fehler bei der Ortssuche.");
-            }
-        }
-
-        async function reverseGeocode(lat, lng) {
-            try {
-                const url = `https://nominatim.openstreetmap.org/reverse?format=json&accept-language=de&lat=${lat}&lon=${lng}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data && data.display_name) {
-                    document.getElementById('locationName').innerText = data.display_name;
-                }
-            } catch (e) {
-                document.getElementById('locationName').innerText = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
-            }
-        }
-
-        function formatHHMM(dateObj) {
-            if (!dateObj || isNaN(dateObj.getTime())) return '--:--';
-            const hrs = String(dateObj.getHours()).padStart(2, '0');
-            const mins = String(dateObj.getMinutes()).padStart(2, '0');
-            return `${hrs}:${mins}`;
-        }
-
-        function resetResults() {
-            ['dawn', 'dusk', 'sunrise', 'sunset', 'solarnoon'].forEach(id => {
-                document.getElementById(id).innerText = "--:--";
-            });
-            document.getElementById('daylength').innerText = "-- Std -- Min";
-        }
-
-        function updateData() {
-            if (!dateInput.value) return;
-            showStatus("");
-
-            const targetDate = selectedDate();
-            const times = SunCalc.getTimes(targetDate, currentLat, currentLng);
-
-            const srDate = times.sunrise;
-            const ssDate = times.sunset;
-
-            if (srDate && ssDate && !isNaN(srDate.getTime()) && !isNaN(ssDate.getTime())) {
-                document.getElementById('dawn').innerText = formatHHMM(times.dawn);
-                document.getElementById('dusk').innerText = formatHHMM(times.dusk);
-                document.getElementById('sunrise').innerText = formatHHMM(srDate);
-                document.getElementById('sunset').innerText = formatHHMM(ssDate);
-                document.getElementById('solarnoon').innerText = formatHHMM(times.solarNoon);
-
-                const diffMs = ssDate - srDate;
-                const diffHrs = Math.floor(diffMs / 3600000);
-                const diffMins = Math.round((diffMs % 3600000) / 60000);
-                document.getElementById('daylength').innerText = `${diffHrs} Std ${diffMins} Min`;
-
-                drawSunArc(srDate, ssDate, targetDate);
+    async function searchLocation(ev) {
+        ev.preventDefault();
+        const input = $('searchInput');
+        const q = input.value.trim();
+        if (!q) return;
+        toast('Suche Ort …', 0);
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&accept-language=de&q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+            if (data && data.length) {
+                setPosition(parseFloat(data[0].lat), parseFloat(data[0].lon), { center: true, name: formatAddress(data[0]) });
+                input.value = '';
+                input.blur();
+                hideToast();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-                showStatus("Polartag oder Polarnacht.");
-                resetResults();
-                drawSunArc(null, null, targetDate);
+                toast('Ort nicht gefunden');
+            }
+        } catch (e) {
+            toast('Keine Verbindung zur Ortssuche');
+        }
+    }
+
+    function useGPS(silent) {
+        if (!navigator.geolocation) { if (!silent) toast('GPS wird nicht unterstützt'); return; }
+        const btn = $('gpsBtn');
+        btn.classList.add('busy');
+        if (!silent) toast('Standort wird ermittelt …', 0);
+        navigator.geolocation.getCurrentPosition(
+            p => {
+                btn.classList.remove('busy');
+                hideToast();
+                setPosition(p.coords.latitude, p.coords.longitude, { center: true });
+            },
+            err => {
+                btn.classList.remove('busy');
+                if (!silent) toast(err.code === 1 ? 'Standortzugriff nicht erlaubt' : 'Standort nicht gefunden');
+                else hideToast();
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+        );
+    }
+
+    /* ---------- Anzeige ---------- */
+    function render() {
+        const noon = noonOf(state.date);
+        const t = SunCalc.getTimes(noon, state.lat, state.lng);
+        const tPrev = SunCalc.getTimes(addDays(noon, -1), state.lat, state.lng);
+        renderDate();
+        renderTimes(t, tPrev);
+        renderCountdown(t);
+        renderSky(t);
+        renderTimeline();
+        renderSunNow(t);
+    }
+
+    function renderDate() {
+        const diff = Math.round((state.date - startOfDay(new Date())) / DAY_MS);
+        let rel = diff === 0 ? 'Heute' : diff === 1 ? 'Morgen' : diff === -1 ? 'Gestern'
+                : diff > 0 ? `in ${diff} Tagen` : `vor ${-diff} Tagen`;
+        $('dateRel').textContent = rel;
+        $('dateMain').textContent = state.date.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+        $('dateInput').value = toInputValue(state.date);
+        $('todayBtn').hidden = diff === 0;
+    }
+
+    function isPolarDay(t) {
+        const when = valid(t.solarNoon) ? t.solarNoon : noonOf(state.date);
+        return sunPos(when).alt > 0;
+    }
+
+    function renderTimes(t, tPrev) {
+        $('sunrise').textContent = hhmm(t.sunrise);
+        $('sunset').textContent = hhmm(t.sunset);
+        $('dawn').textContent = hhmm(t.dawn);
+        $('dusk').textContent = hhmm(t.dusk);
+        $('solarnoon').textContent = hhmm(t.solarNoon);
+        $('maxAlt').textContent = valid(t.solarNoon) ? `Sonne ${deg(sunPos(t.solarNoon).alt)} hoch` : '';
+
+        const diffEl = $('dayDiff');
+        diffEl.className = 'mini-sub';
+        if (valid(t.sunrise) && valid(t.sunset)) {
+            const len = t.sunset - t.sunrise;
+            $('daylength').textContent = duration(len);
+            if (valid(tPrev.sunrise) && valid(tPrev.sunset)) {
+                const sec = Math.round((len - (tPrev.sunset - tPrev.sunrise)) / 1000);
+                const abs = Math.abs(sec);
+                const txt = `${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, '0')} Min`;
+                if (sec > 0) { diffEl.textContent = `+${txt} zum Vortag`; diffEl.classList.add('plus'); }
+                else if (sec < 0) { diffEl.textContent = `−${txt} zum Vortag`; diffEl.classList.add('minus'); }
+                else diffEl.textContent = 'gleich wie Vortag';
+            } else diffEl.textContent = '';
+        } else {
+            const polarDay = isPolarDay(t);
+            $('daylength').textContent = polarDay ? '24 Std' : '0 Std';
+            diffEl.textContent = polarDay ? 'Polartag' : 'Polarnacht';
+        }
+
+        if (valid(t.sunrise) && valid(t.sunset)) {
+            if (valid(t.goldenHourEnd) && valid(t.goldenHour)) {
+                $('goldenMorning').textContent = `${hhmm(t.sunrise)} – ${hhmm(t.goldenHourEnd)}`;
+                $('goldenEvening').textContent = `${hhmm(t.goldenHour)} – ${hhmm(t.sunset)}`;
+            } else {
+                // Sonne steigt den ganzen Tag nicht über 6° – der ganze Tag ist "golden"
+                $('goldenMorning').textContent = 'ganztägig';
+                $('goldenEvening').textContent = 'ganztägig';
+            }
+        } else {
+            $('goldenMorning').textContent = '–';
+            $('goldenEvening').textContent = '–';
+        }
+    }
+
+    function renderCountdown(t) {
+        const label = $('countdownLabel'), value = $('countdown');
+        if (!valid(t.sunrise) || !valid(t.sunset)) {
+            label.textContent = isToday() ? 'Heute' : $('dateRel').textContent;
+            value.textContent = isPolarDay(t) ? 'Polartag' : 'Polarnacht';
+            return;
+        }
+        if (!isToday()) {
+            label.textContent = 'Sonne sichtbar';
+            value.textContent = `${hhmm(t.sunrise)} – ${hhmm(t.sunset)}`;
+            return;
+        }
+        const now = new Date();
+        if (now < t.sunrise) {
+            label.textContent = `Sonnenaufgang um ${hhmm(t.sunrise)} – noch`;
+            value.textContent = duration(t.sunrise - now);
+        } else if (now < t.sunset) {
+            label.textContent = `Sonnenuntergang um ${hhmm(t.sunset)} – noch`;
+            value.textContent = duration(t.sunset - now);
+        } else {
+            const tomorrow = SunCalc.getTimes(addDays(noonOf(state.date), 1), state.lat, state.lng);
+            if (valid(tomorrow.sunrise)) {
+                label.textContent = `Sonnenaufgang morgen um ${hhmm(tomorrow.sunrise)} – noch`;
+                value.textContent = duration(tomorrow.sunrise - now);
+            } else {
+                label.textContent = 'Die Sonne ist untergegangen';
+                value.textContent = 'Gute Nacht';
             }
         }
+    }
 
-        // Punkt auf der (quadratischen) Bezier-Kurve des Sonnenbogens
-        function arcPoint(t, w, h) {
-            const x = (1 - t) * (1 - t) * 20 + 2 * (1 - t) * t * (w / 2) + t * t * (w - 20);
-            const y = (1 - t) * (1 - t) * (h - 20) + 2 * (1 - t) * t * 10 + t * t * (h - 20);
-            return { x, y };
+    function skyColors(alt) {
+        if (alt >= 10) return ['#1e4fbf', '#5fb4f0'];   // Tag
+        if (alt >= 0) return ['#334a94', '#e5895a'];    // goldene Stunde
+        if (alt >= -6) return ['#1c2459', '#b65277'];   // Dämmerung
+        if (alt >= -12) return ['#0e1540', '#2e2f6d'];  // späte Dämmerung
+        return ['#050816', '#121a3c'];                  // Nacht
+    }
+
+    function renderSky(t) {
+        const canvas = $('sky');
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        if (!w || !h) return;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = w * dpr; canvas.height = h * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        const start = state.date.getTime();
+        const today = isToday();
+        const now = new Date();
+        const refTime = today ? now : (valid(t.solarNoon) ? t.solarNoon : noonOf(state.date));
+        const refAlt = sunPos(refTime).alt;
+
+        // Himmelsfarbe passend zum Sonnenstand
+        const [top, bottom] = skyColors(refAlt);
+        const hero = $('hero');
+        hero.style.setProperty('--sky-top', top);
+        hero.style.setProperty('--sky-bottom', bottom);
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', top);
+
+        // Sonnenhöhe über 24 Stunden berechnen
+        const N = 144, pts = [];
+        let maxA = -90, minA = 90;
+        for (let i = 0; i <= N; i++) {
+            const a = sunPos(new Date(start + i * DAY_MS / N)).alt;
+            pts.push(a); maxA = Math.max(maxA, a); minA = Math.min(minA, a);
         }
+        const padX = 14, topY = 16, bottomY = h - 24, horizon = Math.round(h * 0.64);
+        const up = (horizon - topY) / Math.max(maxA, 15);
+        const down = (bottomY - horizon) / Math.max(-minA, 15);
+        const X = frac => padX + (w - 2 * padX) * frac;
+        const Y = a => a >= 0 ? horizon - a * up : horizon - a * down;
 
-        function drawSunArc(sunriseDate, sunsetDate, selectedDay) {
-            const canvas = document.getElementById('sunCanvas');
-            const ctx = canvas.getContext('2d');
-
-            // Scharf auch auf Bildschirmen mit hoher Auflösung (Handy)
-            const dpr = window.devicePixelRatio || 1;
-            const w = canvas.offsetWidth;
-            const h = canvas.offsetHeight;
-            canvas.width = w * dpr;
-            canvas.height = h * dpr;
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            ctx.clearRect(0, 0, w, h);
-
-            // Horizont
-            ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(10, h - 20);
-            ctx.lineTo(w - 10, h - 20);
-            ctx.stroke();
-
-            // Sonnenbogen
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(20, h - 20);
-            ctx.quadraticCurveTo(w / 2, 10, w - 20, h - 20);
-            ctx.stroke();
-
-            if (!sunriseDate || !sunsetDate) return;
-
-            // Aktuelle Sonnenposition, nur wenn der gewählte Tag heute ist
-            const now = new Date();
-            const isToday = now.toDateString() === selectedDay.toDateString();
-            if (!isToday) return;
-
-            const progress = (now - sunriseDate) / (sunsetDate - sunriseDate);
-            if (progress >= 0 && progress <= 1) {
-                const p = arcPoint(progress, w, h);
-                ctx.fillStyle = '#f59e0b';
+        // Sterne bei Nacht
+        if (refAlt < -6) {
+            let seed = 7;
+            const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+            for (let i = 0; i < 45; i++) {
+                ctx.fillStyle = `rgba(255,255,255,${0.25 + rnd() * 0.6})`;
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+                ctx.arc(rnd() * w, rnd() * (horizon - 10), rnd() * 1.2 + 0.3, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
-        window.onload = initMap;
-    </script>
+        const curve = new Path2D();
+        pts.forEach((a, i) => i ? curve.lineTo(X(i / N), Y(a)) : curve.moveTo(X(0), Y(a)));
+        const area = new Path2D(curve);
+        area.lineTo(X(1), horizon); area.lineTo(X(0), horizon); area.closePath();
+
+        // Teil über dem Horizont: leuchtend
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, 0, w, horizon); ctx.clip();
+        const g = ctx.createLinearGradient(0, topY, 0, horizon);
+        g.addColorStop(0, 'rgba(253, 224, 71, 0.45)');
+        g.addColorStop(1, 'rgba(253, 224, 71, 0.02)');
+        ctx.fillStyle = g; ctx.fill(area);
+        ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2.5;
+        ctx.shadowColor = 'rgba(251, 191, 36, 0.8)'; ctx.shadowBlur = 12;
+        ctx.stroke(curve);
+        ctx.restore();
+
+        // Teil unter dem Horizont: gestrichelt
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, horizon, w, h - horizon); ctx.clip();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'; ctx.fillRect(0, horizon, w, h - horizon);
+        ctx.setLineDash([3, 5]); ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; ctx.lineWidth = 1.5;
+        ctx.stroke(curve);
+        ctx.restore();
+
+        // Horizontlinie
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, horizon + 0.5); ctx.lineTo(w, horizon + 0.5); ctx.stroke();
+
+        // Uhrzeiten an der Achse
+        ctx.font = '600 11px system-ui, sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+        ctx.textBaseline = 'alphabetic';
+        [0, 6, 12, 18, 24].forEach(hr => {
+            ctx.textAlign = hr === 0 ? 'left' : hr === 24 ? 'right' : 'center';
+            ctx.fillText(`${hr}`, hr === 0 ? 4 : hr === 24 ? w - 4 : X(hr / 24), h - 6);
+        });
+
+        // Auf- und Untergang am Horizont markieren
+        [[t.sunrise, '↑'], [t.sunset, '↓']].forEach(([d, arrow]) => {
+            if (!valid(d)) return;
+            const x = X((d - start) / DAY_MS);
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath(); ctx.arc(x, horizon, 3.5, 0, Math.PI * 2); ctx.fill();
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.fillText(`${arrow} ${hhmm(d)}`, Math.min(Math.max(x, 30), w - 30), horizon + 17);
+        });
+
+        // Sonne: heute an der aktuellen Position, sonst zur Mittagszeit
+        const sunTime = refTime;
+        const frac = (sunTime - start) / DAY_MS;
+        if (frac >= 0 && frac <= 1) {
+            const sx = X(frac), sy = Y(refAlt);
+            const above = refAlt >= 0;
+            const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 30);
+            glow.addColorStop(0, above ? 'rgba(253, 230, 138, 0.9)' : 'rgba(255, 255, 255, 0.35)');
+            glow.addColorStop(1, 'rgba(253, 230, 138, 0)');
+            ctx.globalAlpha = today ? 1 : 0.6;
+            ctx.fillStyle = glow;
+            ctx.beginPath(); ctx.arc(sx, sy, 30, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = above ? '#fff7d1' : 'rgba(255, 255, 255, 0.7)';
+            ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function phaseColor(a) {
+        if (a >= 6) return '#fde68a';    // Tag
+        if (a >= 0) return '#f59e0b';    // goldene Stunde
+        if (a >= -6) return '#e0607e';   // bürgerliche Dämmerung
+        if (a >= -12) return '#5b4bc4';  // nautische Dämmerung
+        if (a >= -18) return '#2a2470';  // astronomische Dämmerung
+        return '#0d1130';                // Nacht
+    }
+
+    function renderTimeline() {
+        const start = state.date.getTime();
+        const N = 288, stops = [];
+        for (let i = 0; i <= N; i++) {
+            const a = sunPos(new Date(start + i * DAY_MS / N)).alt;
+            stops.push(`${phaseColor(a)} ${(i / N * 100).toFixed(2)}%`);
+        }
+        $('timelineBar').style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
+
+        const nowEl = $('timelineNow');
+        if (isToday()) {
+            const frac = (Date.now() - start) / DAY_MS;
+            nowEl.style.left = `${Math.min(Math.max(frac, 0), 1) * 100}%`;
+            nowEl.hidden = false;
+        } else {
+            nowEl.hidden = true;
+        }
+    }
+
+    function renderSunNow(t) {
+        const today = isToday();
+        const when = today ? new Date() : (valid(t.solarNoon) ? t.solarNoon : noonOf(state.date));
+        $('sunNowTitle').textContent = today ? 'Sonne jetzt' : `Sonne um ${hhmm(when)} (Höchststand)`;
+        $('liveBadge').hidden = !today;
+
+        const p = sunPos(when);
+        $('altVal').textContent = deg(p.alt);
+        $('azVal').textContent = `${direction(p.az)} · ${Math.round(p.az)}°`;
+        if (p.alt > 0.5) {
+            const len = 1 / Math.tan(p.altRad);
+            $('shadowVal').textContent = len > 99 ? 'über 99 m' : `${len.toFixed(1).replace('.', ',')} m`;
+        } else {
+            $('shadowVal').textContent = p.alt < 0 ? 'keiner (Sonne weg)' : 'sehr lang';
+        }
+
+        // Position auf der Himmelskarte (Nord oben, Ost rechts)
+        const R = 56;
+        const r = p.alt >= 0 ? R * (1 - p.alt / 90) : R;
+        const x = 60 + r * Math.sin(p.az / RAD);
+        const y = 60 - r * Math.cos(p.az / RAD);
+        const dot = $('sunDot'), ray = $('sunRay');
+        dot.setAttribute('cx', x.toFixed(1)); dot.setAttribute('cy', y.toFixed(1));
+        ray.setAttribute('x2', x.toFixed(1)); ray.setAttribute('y2', y.toFixed(1));
+        dot.classList.toggle('below', p.alt < 0);
+        ray.style.opacity = p.alt < 0 ? 0.2 : 1;
+    }
+
+    /* ---------- Bedienung ---------- */
+    function changeDay(n) {
+        state.date = startOfDay(addDays(state.date, n));
+        render();
+    }
+
+    function init() {
+        const hadSaved = loadSaved();
+        initMap();
+
+        $('prevDay').addEventListener('click', () => changeDay(-1));
+        $('nextDay').addEventListener('click', () => changeDay(1));
+        $('todayBtn').addEventListener('click', () => { state.date = startOfDay(new Date()); render(); });
+        $('dateInput').addEventListener('change', e => {
+            if (!e.target.value) return;
+            const [y, m, d] = e.target.value.split('-').map(Number);
+            state.date = new Date(y, m - 1, d);
+            render();
+        });
+        $('searchForm').addEventListener('submit', searchLocation);
+        $('gpsBtn').addEventListener('click', () => useGPS(false));
+        $('placeChip').addEventListener('click', () => {
+            $('locationCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        if (hadSaved && state.name) setPlaceName(state.name);
+        else { setPlaceName('Mainz'); reverseGeocode(state.lat, state.lng); }
+        render();
+        useGPS(true);
+
+        // Jede Minute aktualisieren, solange "heute" angezeigt wird
+        setInterval(() => { if (isToday()) render(); }, 60000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+        let resizeTimer;
+        window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); });
+    }
+
+    window.addEventListener('load', init);
+</script>
 </body>
 </html>

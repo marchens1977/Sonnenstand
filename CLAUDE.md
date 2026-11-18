@@ -41,7 +41,8 @@ Funktionen:
 - **15.11.2026** – Neues Design: Himmel mit Sonnenkurve, Countdown, Tagesverlauf, Himmelskarte,
   dunkle Karte.
 - **15.11.2026** – Karte auf OpenStreetMap umgestellt (kein Zugangsschlüssel nötig).
-- **16.11.2026** – Dieses Projekt-Tagebuch (`CLAUDE.md`) angelegt.
+- **16.11.2026** – Dieses Projekt-Tagebuch (`CLAUDE.md`) angelegt (PR #1).
+- **18.11.2026** – Regel „Hilfsprogramme und Tests gehören ins Projekt“ ergänzt.
 
 ## 4. Offene Ideen / nächste Schritte
 - Mondaufgang, Monduntergang und Mondphase
@@ -65,3 +66,20 @@ Nutzer am Ende der Antwort:
 
 ## 7. Tagebuch pflegen
 Nach jeder größeren Änderung dieses Tagebuch aktualisieren (vor allem „Verlauf“ und „Offene Ideen“).
+
+## 8. Hilfsprogramme und Tests gehören ins Projekt
+1. Automatische Prüfungen (Tests) und Hilfsprogramme, die über eine einzelne Aufgabe hinaus
+   nützlich sind, werden im Projekt gespeichert (z. B. Ordner `werkzeuge/` oder `test/`) –
+   nicht nur im Arbeitsbereich der Sitzung, der beim Archivieren verloren geht.
+2. Im Tagebuch steht, wie man sie startet und was sie prüfen.
+3. Nach jeder Code-Änderung die vorhandenen Prüfungen laufen lassen; bei neuen Funktionen
+   passende Prüfpunkte ergänzen.
+4. Gibt es noch keine automatische Prüfung, bei der nächsten Code-Änderung eine einfache anlegen.
+5. Was Claude nicht selbst testen kann (z. B. echte Anmeldungen, das echte Handy, den
+   Raspberry Pi), im Tagebuch als Test für den Nutzer vermerken.
+
+### Vorhandene Prüfungen und Hilfsprogramme
+- Noch keine. Die erste automatische Prüfung wird bei der nächsten Code-Änderung angelegt.
+
+### Tests für den Nutzer (kann Claude nicht selbst prüfen)
+- App auf dem Samsung-Handy in Chrome öffnen: Sieht alles gut aus? Funktioniert der GPS-Knopf?

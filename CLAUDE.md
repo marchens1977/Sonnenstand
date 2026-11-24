@@ -13,12 +13,18 @@ Funktionen:
 - Tagesverlauf als farbiger Balken
 - Sonne jetzt: Höhe, Himmelsrichtung, Schattenlänge
 - Ort suchen oder per GPS bestimmen, dunkle Karte
+- **Als App installierbar** (PWA): eigenes Icon auf dem Startbildschirm, startet auch ohne Internet
 
 **Online:** noch nicht sicher festgehalten – vermutlich über GitHub Pages
 (`https://marchens1977.github.io/Sonnenstand/`). Bitte bestätigen und hier eintragen.
 
 ### Technischer Aufbau
-- Alles steckt in **einer einzigen Datei: `index.html`** (Aussehen, Text und Programm-Logik).
+- Die App selbst steckt in **einer Datei: `index.html`** (Aussehen, Text und Programm-Logik).
+- Für die Installation als App gibt es zusätzlich:
+  - `manifest.webmanifest` – App-Steckbrief (Name, Farben, Icons).
+  - `sw.js` – „Service Worker“: Hintergrund-Helfer, der die App-Dateien speichert (offline-fähig).
+    **Bei jeder Änderung an der App die Zahl in `VERSION` um 1 erhöhen**, damit Handys die neue Version holen.
+  - `icons/` – App-Symbole (werden aus `werkzeuge/icon-vorlage.svg` erzeugt).
 - Fremde Bausteine (werden aus dem Internet geladen, kein Zugangsschlüssel nötig):
   - **SunCalc** – rechnet die Sonnenzeiten und den Sonnenstand aus.
   - **Leaflet** – zeigt die Karte an.
@@ -28,8 +34,10 @@ Funktionen:
 ## 2. Wichtige Regeln und Entscheidungen
 - Die App soll ohne Zugangsschlüssel (API-Key) auskommen. Deshalb Karte von OpenStreetMap
   statt CARTO.
-- Die App bleibt eine einzelne Datei, damit sie einfach zu verstehen und hochzuladen ist.
-- Dunkles Design (Nachthimmel-Look).
+- Die App-Logik bleibt in einer einzelnen Datei; nur Manifest, Service Worker und Icons kommen dazu.
+- Design in den Farben der **New York Mets**: Blau `#002D72` (Hintergrund, Karten) und Orange `#FF5910`
+  (Knöpfe, Sonnenkurve, Akzente), dazu Weiß. Nur die Farben – **kein** Mets-Logo (geschützt).
+- „Herunterladbare App“ = installierbare Web-App (PWA) statt Android-APK: kostenlos, aktualisiert sich selbst.
 - Keine persönlichen oder geheimen Daten in dieses Projekt schreiben (keine E-Mail-Adressen,
   Passwörter, API-Schlüssel).
 
@@ -43,11 +51,14 @@ Funktionen:
 - **15.11.2026** – Karte auf OpenStreetMap umgestellt (kein Zugangsschlüssel nötig).
 - **16.11.2026** – Dieses Projekt-Tagebuch (`CLAUDE.md`) angelegt (PR #1).
 - **18.11.2026** – Regel „Hilfsprogramme und Tests gehören ins Projekt“ ergänzt.
+- **24.11.2026** – Design auf Mets-Farben (Blau/Orange) umgestellt. App installierbar gemacht
+  (Manifest, Service Worker, eigenes Icon: orange Sonne über weißem Horizont auf Mets-Blau,
+  Knopf „Installieren“). Darstellung auf schmalen Handys repariert (Kästen ragten über den Rand).
+  Erste automatische Prüfung `test/pruefen.js` angelegt.
 
 ## 4. Offene Ideen / nächste Schritte
 - Mondaufgang, Monduntergang und Mondphase
 - Lieblingsorte speichern
-- App aufs Handy „installieren“ (Symbol auf dem Startbildschirm, sog. PWA)
 - Erinnerung vor der goldenen Stunde (für Fotos)
 - Online-Adresse der App prüfen und oben eintragen
 
@@ -79,7 +90,21 @@ Nach jeder größeren Änderung dieses Tagebuch aktualisieren (vor allem „Verl
    Raspberry Pi), im Tagebuch als Test für den Nutzer vermerken.
 
 ### Vorhandene Prüfungen und Hilfsprogramme
-- Noch keine. Die erste automatische Prüfung wird bei der nächsten Code-Änderung angelegt.
+- **`test/pruefen.js`** – startet die App in einem Handy-großen Test-Browser und prüft:
+  Manifest und Icons (Größen), keine Programmfehler, Sonnenzeiten werden angezeigt, Mets-Farben gesetzt,
+  Service Worker läuft, nichts ragt über den Rand, App startet auch offline. Macht Bildschirmfotos
+  nach `test/bildschirmfotos/` (nicht im Repository).
+  - Einmalig: `npm install --no-save --prefix test/.vendor leaflet@1.9.4 suncalc@1.9.0`
+    (lokale Kopie der Bausteine, falls das Internet in der Sitzung gesperrt ist)
+  - Start: `node test/pruefen.js`
+- **`werkzeuge/icons-erzeugen.py`** – erzeugt alle Icons in `icons/` aus `werkzeuge/icon-vorlage.svg`.
+  Start: `python3 werkzeuge/icons-erzeugen.py` (Icon ändern = Vorlage ändern, dann neu erzeugen).
 
 ### Tests für den Nutzer (kann Claude nicht selbst prüfen)
-- App auf dem Samsung-Handy in Chrome öffnen: Sieht alles gut aus? Funktioniert der GPS-Knopf?
+- [ ] App auf dem Samsung-Handy in Chrome öffnen: Sieht alles gut aus? Funktioniert der GPS-Knopf?
+- [ ] Neue Farben (Blau/Orange) gefallen?
+- [ ] Karte „Als App installieren“ erscheint (oder Chrome-Menü ⋮ → „App installieren“ /
+      „Zum Startbildschirm hinzufügen“) → installieren.
+- [ ] Icon auf dem Startbildschirm sieht gut aus (orange Sonne auf Blau).
+- [ ] App über das Icon öffnen: startet ohne Browserleiste.
+- [ ] Flugmodus an → App öffnen: startet trotzdem (Karte und Ortssuche brauchen aber Internet).

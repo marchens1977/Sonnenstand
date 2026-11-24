@@ -3,22 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#070b1a">
+    <meta name="theme-color" content="#002D72">
     <title>Sonnenstand</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☀️</text></svg>">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Sonnenstand">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
         :root {
-            --bg: #070b1a;
-            --card: rgba(255, 255, 255, 0.045);
-            --card-border: rgba(255, 255, 255, 0.09);
-            --text: #f5f7ff;
-            --muted: #9aa4c7;
-            --gold: #fbbf24;
-            --orange: #f97316;
-            --rose: #f472b6;
-            --sky-top: #0b1026;
-            --sky-bottom: #1d2552;
+            /* Farben im Stil der New York Mets: Blau #002D72 und Orange #FF5910 */
+            --mets-blue: #002D72;
+            --mets-orange: #FF5910;
+            --bg: #001233;
+            --card: rgba(0, 45, 114, 0.32);
+            --card-border: rgba(120, 160, 230, 0.16);
+            --text: #ffffff;
+            --muted: #a9bbdf;
+            --gold: #ff7a3d;
+            --orange: #FF5910;
+            --rose: #6f9bff;
+            --sky-top: #001a4d;
+            --sky-bottom: #002D72;
             --radius: 22px;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,8 +35,8 @@
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
             background: var(--bg);
             background-image:
-                radial-gradient(900px 500px at 50% -150px, rgba(251, 191, 36, 0.10), transparent 60%),
-                radial-gradient(700px 500px at 100% 100%, rgba(99, 102, 241, 0.12), transparent 60%);
+                radial-gradient(900px 500px at 50% -150px, rgba(255, 89, 16, 0.14), transparent 60%),
+                radial-gradient(700px 500px at 100% 100%, rgba(0, 45, 114, 0.55), transparent 60%);
             background-attachment: fixed;
             color: var(--text);
             min-height: 100vh;
@@ -60,7 +68,7 @@
             border-radius: 28px;
             padding: 20px 18px 10px;
             background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 89, 16, 0.35);
             box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
             text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
         }
@@ -68,10 +76,11 @@
         .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
         .brand-sun {
             width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
-            background: radial-gradient(circle at 40% 40%, #fff7d1, #fbbf24 55%, #f97316);
-            box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.55);
+            background: radial-gradient(circle at 40% 40%, #ffffff, #ff8a4c 45%, #FF5910);
+            box-shadow: 0 0 18px 4px rgba(255, 89, 16, 0.6);
         }
-        .brand h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+        .brand h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @media (max-width: 360px) { .brand h1 { font-size: 1.1rem; } .place-chip { max-width: 45%; } .bt-value { font-size: 1.7rem; } .bt-label { font-size: 0.72rem; } }
         .place-chip {
             display: flex; align-items: center; gap: 6px;
             max-width: 55%; padding: 8px 12px; border-radius: 999px;
@@ -94,7 +103,7 @@
             background: rgba(255, 255, 255, 0.07); border: 1px solid var(--card-border);
             transition: transform 0.15s ease, background 0.2s ease;
         }
-        .icon-btn:active { transform: scale(0.93); background: rgba(255, 255, 255, 0.14); }
+        .icon-btn:active { transform: scale(0.93); background: rgba(255, 89, 16, 0.25); }
         .date-display { position: relative; flex: 1; min-width: 0; text-align: center; padding: 4px 0; }
         .date-rel { display: block; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
         .date-main { display: block; font-size: 1.02rem; font-weight: 600; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -104,24 +113,24 @@
         }
         .today-btn {
             display: block; margin: 14px auto 0; padding: 9px 18px; border-radius: 999px;
-            background: linear-gradient(135deg, var(--gold), var(--orange)); color: #1a1205;
+            background: var(--mets-orange); color: #ffffff;
             font-weight: 700; font-size: 0.86rem;
-            box-shadow: 0 8px 20px -8px rgba(249, 115, 22, 0.7);
+            box-shadow: 0 8px 20px -8px rgba(255, 89, 16, 0.8);
         }
         .today-btn[hidden] { display: none; }
 
         /* ---------- Sonnenzeiten ---------- */
-        .big-times { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .big-times { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
         .big-time { border-radius: 18px; padding: 16px 14px; border: 1px solid var(--card-border); }
-        .big-time.rise { background: linear-gradient(145deg, rgba(251, 191, 36, 0.20), rgba(249, 115, 22, 0.05)); }
-        .big-time.set { background: linear-gradient(145deg, rgba(244, 114, 182, 0.18), rgba(139, 92, 246, 0.06)); }
+        .big-time.rise { background: linear-gradient(145deg, rgba(255, 89, 16, 0.28), rgba(255, 89, 16, 0.05)); }
+        .big-time.set { background: linear-gradient(145deg, rgba(58, 110, 220, 0.35), rgba(0, 45, 114, 0.15)); }
         .big-time svg.i { width: 26px; height: 26px; }
         .big-time.rise svg.i { color: var(--gold); }
         .big-time.set svg.i { color: var(--rose); }
         .bt-label { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
         .bt-value { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
-        .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-        .mini { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 14px; }
+        .mini-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+        .mini { background: rgba(0, 45, 114, 0.35); border: 1px solid rgba(120, 160, 230, 0.12); border-radius: 16px; padding: 14px; }
         .mini-label { font-size: 0.76rem; color: var(--muted); }
         .mini-value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
         .mini-sub { font-size: 0.74rem; color: var(--muted); margin-top: 3px; }
@@ -129,8 +138,8 @@
         .mini-sub.minus { color: #fb923c; }
         .golden {
             margin-top: 12px; border-radius: 16px; padding: 14px 16px;
-            background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(249, 115, 22, 0.04));
-            border: 1px solid rgba(251, 191, 36, 0.25);
+            background: linear-gradient(135deg, rgba(255, 89, 16, 0.20), rgba(255, 89, 16, 0.04));
+            border: 1px solid rgba(255, 89, 16, 0.35);
         }
         .golden-title { font-size: 0.86rem; font-weight: 700; color: var(--gold); margin-bottom: 8px; }
         .golden-row { display: flex; justify-content: space-between; font-size: 0.92rem; padding: 4px 0; }
@@ -143,7 +152,7 @@
         .timeline-now {
             position: absolute; top: -6px; width: 4px; height: 32px; border-radius: 4px;
             background: #fff; transform: translateX(-50%);
-            box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 0 2px var(--mets-orange), 0 0 12px 3px rgba(255, 89, 16, 0.7);
         }
         .timeline-now[hidden] { display: none; }
         .timeline-scale { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
@@ -158,12 +167,12 @@
         @keyframes blink { 50% { opacity: 0.25; } }
         .sun-now { display: grid; grid-template-columns: 140px 1fr; gap: 18px; align-items: center; }
         .skychart { width: 140px; height: 140px; }
-        .skychart .ring { fill: rgba(255, 255, 255, 0.03); stroke: rgba(255, 255, 255, 0.25); stroke-width: 1; }
+        .skychart .ring { fill: rgba(0, 45, 114, 0.35); stroke: rgba(255, 255, 255, 0.25); stroke-width: 1; }
         .skychart .ring.faint { fill: none; stroke: rgba(255, 255, 255, 0.10); stroke-dasharray: 2 3; }
         .skychart .axis { stroke: rgba(255, 255, 255, 0.08); stroke-width: 1; }
         .skychart .dir { fill: var(--muted); font-size: 10px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
-        .skychart .ray { stroke: rgba(251, 191, 36, 0.6); stroke-width: 1.5; stroke-dasharray: 3 3; }
-        .skychart .sundot { fill: #fde68a; filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.9)); transition: cx 0.6s, cy 0.6s; }
+        .skychart .ray { stroke: rgba(255, 89, 16, 0.75); stroke-width: 1.5; stroke-dasharray: 3 3; }
+        .skychart .sundot { fill: #FF5910; stroke: #fff; stroke-width: 1.5; filter: drop-shadow(0 0 6px rgba(255, 89, 16, 0.9)); transition: cx 0.6s, cy 0.6s; }
         .skychart .sundot.below { fill: rgba(255, 255, 255, 0.3); filter: none; }
         .sun-stats { display: flex; flex-direction: column; gap: 12px; }
         .sun-stats div { display: flex; flex-direction: column; }
@@ -177,15 +186,15 @@
         .search-field input {
             width: 100%; min-width: 0; height: 48px; padding: 0 52px 0 44px;
             border-radius: 16px; border: 1px solid var(--card-border);
-            background: rgba(0, 0, 0, 0.25); color: var(--text); font-size: 1rem; outline: none;
+            background: rgba(0, 10, 36, 0.55); color: var(--text); font-size: 1rem; outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .search-field input::placeholder { color: #6b7499; }
-        .search-field input:focus { border-color: rgba(251, 191, 36, 0.6); box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.15); }
+        .search-field input::placeholder { color: #7f93bd; }
+        .search-field input:focus { border-color: rgba(255, 89, 16, 0.7); box-shadow: 0 0 0 4px rgba(255, 89, 16, 0.18); }
         .go-btn {
             position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; border-radius: 12px;
             display: grid; place-items: center;
-            background: linear-gradient(135deg, var(--gold), var(--orange)); color: #1a1205;
+            background: var(--mets-orange); color: #ffffff;
         }
         .go-btn svg.i { width: 18px; height: 18px; }
         .gps-btn { color: var(--gold); }
@@ -197,30 +206,48 @@
         .tz-hint { font-size: 0.78rem; color: #fb923c; margin-bottom: 12px; line-height: 1.45; }
         .tz-hint[hidden] { display: none; }
         #map { height: 260px; border-radius: 18px; overflow: hidden; border: 1px solid var(--card-border); z-index: 1; }
-        .leaflet-container { background: #0b1026; font-family: inherit; }
+        .leaflet-container { background: #001233; font-family: inherit; }
         /* Helle OpenStreetMap-Karte per Filter in einen Nachtmodus umfärben */
         .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.7); }
         .leaflet-bar { border: none !important; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4) !important; }
-        .leaflet-bar a { background: #161c38 !important; color: #fff !important; border-color: rgba(255, 255, 255, 0.08) !important; }
-        .leaflet-control-attribution { background: rgba(7, 11, 26, 0.7) !important; color: var(--muted) !important; }
+        .leaflet-bar a { background: #002D72 !important; color: #fff !important; border-color: rgba(255, 255, 255, 0.08) !important; }
+        .leaflet-control-attribution { background: rgba(0, 18, 51, 0.75) !important; color: var(--muted) !important; }
         .leaflet-control-attribution a { color: var(--gold) !important; }
         .sun-marker span {
             display: block; width: 26px; height: 26px; border-radius: 50%;
-            background: radial-gradient(circle, #fff7d1 0 30%, #fbbf24 32% 58%, rgba(249, 115, 22, 0.35) 60%);
+            background: radial-gradient(circle, #ffffff 0 28%, #FF5910 30% 58%, rgba(255, 89, 16, 0.35) 60%);
             animation: pulse 2.4s infinite;
         }
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.55); }
-            70% { box-shadow: 0 0 0 18px rgba(251, 191, 36, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(255, 89, 16, 0.6); }
+            70% { box-shadow: 0 0 0 18px rgba(255, 89, 16, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 89, 16, 0); }
         }
+
+        /* ---------- App installieren ---------- */
+        .install {
+            display: flex; align-items: center; gap: 14px;
+            border-color: rgba(255, 89, 16, 0.45);
+            background: linear-gradient(135deg, rgba(255, 89, 16, 0.22), rgba(0, 45, 114, 0.45));
+        }
+        .install[hidden] { display: none; }
+        .install img { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
+        .install-text { flex: 1; min-width: 0; }
+        .install-text b { display: block; font-size: 1rem; }
+        .install-text span { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+        .install-btn {
+            padding: 10px 16px; border-radius: 999px; flex-shrink: 0;
+            background: var(--mets-orange); color: #fff; font-weight: 700; font-size: 0.86rem;
+            box-shadow: 0 8px 20px -8px rgba(255, 89, 16, 0.8);
+        }
+        .install-btn:active { transform: scale(0.95); }
 
         /* ---------- Hinweis-Meldung ---------- */
         .toast {
             position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 1000;
             transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
             padding: 12px 18px; border-radius: 999px; max-width: calc(100% - 32px);
-            background: rgba(22, 28, 56, 0.92); border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(0, 45, 114, 0.95); border: 1px solid rgba(255, 89, 16, 0.5);
             font-size: 0.88rem; font-weight: 600; text-align: center;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -250,6 +277,16 @@
             <div class="cd-value" id="countdown">--</div>
         </div>
         <canvas id="sky" aria-label="Sonnenhöhe im Tagesverlauf"></canvas>
+    </section>
+
+    <!-- App installieren (erscheint nur, wenn Chrome das Installieren anbietet) -->
+    <section class="card install" id="installCard" hidden>
+        <img src="icons/icon-192.png" alt="">
+        <div class="install-text">
+            <b>Als App installieren</b>
+            <span>Mit eigenem Symbol auf dem Startbildschirm – startet ohne Browserleiste.</span>
+        </div>
+        <button class="install-btn" id="installBtn" type="button">Installieren</button>
     </section>
 
     <!-- Datum -->
@@ -323,10 +360,10 @@
         </div>
         <div class="timeline-scale"><span>0 Uhr</span><span>6</span><span>12</span><span>18</span><span>24 Uhr</span></div>
         <div class="legend">
-            <span><i style="background:#0d1130;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)"></i>Nacht</span>
-            <span><i style="background:#5b4bc4"></i>Dämmerung</span>
-            <span><i style="background:#f59e0b"></i>Goldene Stunde</span>
-            <span><i style="background:#fde68a"></i>Tag</span>
+            <span><i style="background:#00102e;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)"></i>Nacht</span>
+            <span><i style="background:#2a62d0"></i>Dämmerung</span>
+            <span><i style="background:#FF5910"></i>Goldene Stunde</span>
+            <span><i style="background:#ffc29e"></i>Tag</span>
         </div>
     </section>
 
@@ -652,11 +689,11 @@
     }
 
     function skyColors(alt) {
-        if (alt >= 10) return ['#1e4fbf', '#5fb4f0'];   // Tag
-        if (alt >= 0) return ['#334a94', '#e5895a'];    // goldene Stunde
-        if (alt >= -6) return ['#1c2459', '#b65277'];   // Dämmerung
-        if (alt >= -12) return ['#0e1540', '#2e2f6d'];  // späte Dämmerung
-        return ['#050816', '#121a3c'];                  // Nacht
+        if (alt >= 10) return ['#002D72', '#2f6fd6'];   // Tag (Mets-Blau)
+        if (alt >= 0) return ['#002D72', '#ff7a3d'];    // goldene Stunde (Blau → Orange)
+        if (alt >= -6) return ['#001a4d', '#b8461a'];   // Dämmerung
+        if (alt >= -12) return ['#00123a', '#0a2a6b'];  // späte Dämmerung
+        return ['#000a24', '#001a4d'];                  // Nacht
     }
 
     function renderSky(t) {
@@ -716,11 +753,11 @@
         ctx.save();
         ctx.beginPath(); ctx.rect(0, 0, w, horizon); ctx.clip();
         const g = ctx.createLinearGradient(0, topY, 0, horizon);
-        g.addColorStop(0, 'rgba(253, 224, 71, 0.45)');
-        g.addColorStop(1, 'rgba(253, 224, 71, 0.02)');
+        g.addColorStop(0, 'rgba(255, 89, 16, 0.50)');
+        g.addColorStop(1, 'rgba(255, 89, 16, 0.03)');
         ctx.fillStyle = g; ctx.fill(area);
-        ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2.5;
-        ctx.shadowColor = 'rgba(251, 191, 36, 0.8)'; ctx.shadowBlur = 12;
+        ctx.strokeStyle = '#FF5910'; ctx.lineWidth = 2.5;
+        ctx.shadowColor = 'rgba(255, 89, 16, 0.9)'; ctx.shadowBlur = 12;
         ctx.stroke(curve);
         ctx.restore();
 
@@ -749,7 +786,7 @@
         [[t.sunrise, '↑'], [t.sunset, '↓']].forEach(([d, arrow]) => {
             if (!valid(d)) return;
             const x = X((d - start) / DAY_MS);
-            ctx.fillStyle = '#fde68a';
+            ctx.fillStyle = '#FF5910';
             ctx.beginPath(); ctx.arc(x, horizon, 3.5, 0, Math.PI * 2); ctx.fill();
             ctx.textAlign = 'center';
             ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
@@ -763,8 +800,8 @@
             const sx = X(frac), sy = Y(refAlt);
             const above = refAlt >= 0;
             const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 30);
-            glow.addColorStop(0, above ? 'rgba(253, 230, 138, 0.9)' : 'rgba(255, 255, 255, 0.35)');
-            glow.addColorStop(1, 'rgba(253, 230, 138, 0)');
+            glow.addColorStop(0, above ? 'rgba(255, 89, 16, 0.9)' : 'rgba(255, 255, 255, 0.35)');
+            glow.addColorStop(1, 'rgba(255, 89, 16, 0)');
             ctx.globalAlpha = today ? 1 : 0.6;
             ctx.fillStyle = glow;
             ctx.beginPath(); ctx.arc(sx, sy, 30, 0, Math.PI * 2); ctx.fill();
@@ -775,12 +812,12 @@
     }
 
     function phaseColor(a) {
-        if (a >= 6) return '#fde68a';    // Tag
-        if (a >= 0) return '#f59e0b';    // goldene Stunde
-        if (a >= -6) return '#e0607e';   // bürgerliche Dämmerung
-        if (a >= -12) return '#5b4bc4';  // nautische Dämmerung
-        if (a >= -18) return '#2a2470';  // astronomische Dämmerung
-        return '#0d1130';                // Nacht
+        if (a >= 6) return '#ffc29e';    // Tag (helles Orange)
+        if (a >= 0) return '#FF5910';    // goldene Stunde (Mets-Orange)
+        if (a >= -6) return '#4a7fe0';   // bürgerliche Dämmerung
+        if (a >= -12) return '#2a62d0';  // nautische Dämmerung
+        if (a >= -18) return '#0b2a6e';  // astronomische Dämmerung
+        return '#00102e';                // Nacht
     }
 
     function renderTimeline() {
@@ -868,6 +905,30 @@
     }
 
     window.addEventListener('load', init);
+
+    /* ---------- Als App installieren (PWA) ---------- */
+    let installPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();           // eigenen Knopf zeigen statt des Chrome-Banners
+        installPrompt = e;
+        $('installCard').hidden = false;
+    });
+    $('installBtn').addEventListener('click', async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        const choice = await installPrompt.userChoice;
+        installPrompt = null;
+        $('installCard').hidden = true;
+        if (choice.outcome === 'accepted') toast('Sonnenstand wird installiert ☀');
+    });
+    window.addEventListener('appinstalled', () => { $('installCard').hidden = true; });
+
+    // Hintergrund-Helfer: App startet auch ohne Internet
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service Worker:', err));
+        });
+    }
 </script>
 </body>
 </html>

@@ -14,9 +14,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
         :root {
-            /* Farben im Stil der New York Mets: Blau #002D72 und Orange #FF5910 */
-            --mets-blue: #002D72;
-            --mets-orange: #FF5910;
+            /* Hauptfarben der App: Blau und Orange */
+            --haupt-blau: #002D72;
+            --haupt-orange: #FF5910;
             --bg: #001233;
             --card: rgba(0, 45, 114, 0.32);
             --card-border: rgba(120, 160, 230, 0.16);
@@ -113,7 +113,7 @@
         }
         .today-btn {
             display: block; margin: 14px auto 0; padding: 9px 18px; border-radius: 999px;
-            background: var(--mets-orange); color: #ffffff;
+            background: var(--haupt-orange); color: #ffffff;
             font-weight: 700; font-size: 0.86rem;
             box-shadow: 0 8px 20px -8px rgba(255, 89, 16, 0.8);
         }
@@ -152,7 +152,7 @@
         .timeline-now {
             position: absolute; top: -6px; width: 4px; height: 32px; border-radius: 4px;
             background: #fff; transform: translateX(-50%);
-            box-shadow: 0 0 0 2px var(--mets-orange), 0 0 12px 3px rgba(255, 89, 16, 0.7);
+            box-shadow: 0 0 0 2px var(--haupt-orange), 0 0 12px 3px rgba(255, 89, 16, 0.7);
         }
         .timeline-now[hidden] { display: none; }
         .timeline-scale { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
@@ -194,7 +194,7 @@
         .go-btn {
             position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; border-radius: 12px;
             display: grid; place-items: center;
-            background: var(--mets-orange); color: #ffffff;
+            background: var(--haupt-orange); color: #ffffff;
         }
         .go-btn svg.i { width: 18px; height: 18px; }
         .gps-btn { color: var(--gold); }
@@ -237,7 +237,7 @@
         .install-text span { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 2px; line-height: 1.4; }
         .install-btn {
             padding: 10px 16px; border-radius: 999px; flex-shrink: 0;
-            background: var(--mets-orange); color: #fff; font-weight: 700; font-size: 0.86rem;
+            background: var(--haupt-orange); color: #fff; font-weight: 700; font-size: 0.86rem;
             box-shadow: 0 8px 20px -8px rgba(255, 89, 16, 0.8);
         }
         .install-btn:active { transform: scale(0.95); }
@@ -689,7 +689,7 @@
     }
 
     function skyColors(alt) {
-        if (alt >= 10) return ['#002D72', '#2f6fd6'];   // Tag (Mets-Blau)
+        if (alt >= 10) return ['#002D72', '#2f6fd6'];   // Tag
         if (alt >= 0) return ['#002D72', '#ff7a3d'];    // goldene Stunde (Blau → Orange)
         if (alt >= -6) return ['#001a4d', '#b8461a'];   // Dämmerung
         if (alt >= -12) return ['#00123a', '#0a2a6b'];  // späte Dämmerung
@@ -813,7 +813,7 @@
 
     function phaseColor(a) {
         if (a >= 6) return '#ffc29e';    // Tag (helles Orange)
-        if (a >= 0) return '#FF5910';    // goldene Stunde (Mets-Orange)
+        if (a >= 0) return '#FF5910';    // goldene Stunde
         if (a >= -6) return '#4a7fe0';   // bürgerliche Dämmerung
         if (a >= -12) return '#2a62d0';  // nautische Dämmerung
         if (a >= -18) return '#0b2a6e';  // astronomische Dämmerung

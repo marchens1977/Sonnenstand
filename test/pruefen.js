@@ -71,9 +71,9 @@ const server = http.createServer((req, res) => {
     ok(/^\d\d:\d\d$/.test(await page.textContent('#sunset')), 'Sonnenuntergang wird angezeigt');
     const farben = await page.evaluate(() => {
         const cs = getComputedStyle(document.documentElement);
-        return { blau: cs.getPropertyValue('--mets-blue').trim(), orange: cs.getPropertyValue('--mets-orange').trim() };
+        return { blau: cs.getPropertyValue('--haupt-blau').trim(), orange: cs.getPropertyValue('--haupt-orange').trim() };
     });
-    ok(farben.blau.toUpperCase() === '#002D72' && farben.orange.toUpperCase() === '#FF5910', 'Mets-Farben gesetzt (Blau #002D72, Orange #FF5910)');
+    ok(farben.blau.toUpperCase() === '#002D72' && farben.orange.toUpperCase() === '#FF5910', 'Hauptfarben gesetzt (Blau #002D72, Orange #FF5910)');
     const sw = await page.evaluate(async () => {
         const reg = await Promise.race([navigator.serviceWorker.ready, new Promise(r => setTimeout(() => r(null), 8000))]);
         return !!(reg && reg.active);

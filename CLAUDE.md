@@ -35,8 +35,8 @@ Funktionen:
 - Die App soll ohne Zugangsschlüssel (API-Key) auskommen. Deshalb Karte von OpenStreetMap
   statt CARTO.
 - Die App-Logik bleibt in einer einzelnen Datei; nur Manifest, Service Worker und Icons kommen dazu.
-- Design in den Farben der **New York Mets**: Blau `#002D72` (Hintergrund, Karten) und Orange `#FF5910`
-  (Knöpfe, Sonnenkurve, Akzente), dazu Weiß. Nur die Farben – **kein** Mets-Logo (geschützt).
+- Farben: Blau `#002D72` (Hintergrund, Karten) und Orange `#FF5910` (Knöpfe, Sonnenkurve, Akzente),
+  dazu Weiß. Die App hat **keinen Bezug zu Sport, Vereinen oder Marken** – nichts dergleichen einbauen.
 - „Herunterladbare App“ = installierbare Web-App (PWA) statt Android-APK: kostenlos, aktualisiert sich selbst.
 - Keine persönlichen oder geheimen Daten in dieses Projekt schreiben (keine E-Mail-Adressen,
   Passwörter, API-Schlüssel).
@@ -51,8 +51,8 @@ Funktionen:
 - **15.11.2026** – Karte auf OpenStreetMap umgestellt (kein Zugangsschlüssel nötig).
 - **16.11.2026** – Dieses Projekt-Tagebuch (`CLAUDE.md`) angelegt (PR #1).
 - **18.11.2026** – Regel „Hilfsprogramme und Tests gehören ins Projekt“ ergänzt.
-- **24.11.2026** – Design auf Mets-Farben (Blau/Orange) umgestellt. App installierbar gemacht
-  (Manifest, Service Worker, eigenes Icon: orange Sonne über weißem Horizont auf Mets-Blau,
+- **24.11.2026** – Design auf Blau/Orange umgestellt. App installierbar gemacht
+  (Manifest, Service Worker, eigenes Icon: orange Sonne über weißem Horizont auf Blau,
   Knopf „Installieren“). Darstellung auf schmalen Handys repariert (Kästen ragten über den Rand).
   Erste automatische Prüfung `test/pruefen.js` angelegt.
 
@@ -91,7 +91,7 @@ Nach jeder größeren Änderung dieses Tagebuch aktualisieren (vor allem „Verl
 
 ### Vorhandene Prüfungen und Hilfsprogramme
 - **`test/pruefen.js`** – startet die App in einem Handy-großen Test-Browser und prüft:
-  Manifest und Icons (Größen), keine Programmfehler, Sonnenzeiten werden angezeigt, Mets-Farben gesetzt,
+  Manifest und Icons (Größen), keine Programmfehler, Sonnenzeiten werden angezeigt, Hauptfarben gesetzt,
   Service Worker läuft, nichts ragt über den Rand, App startet auch offline. Macht Bildschirmfotos
   nach `test/bildschirmfotos/` (nicht im Repository).
   - Einmalig: `npm install --no-save --prefix test/.vendor leaflet@1.9.4 suncalc@1.9.0`
